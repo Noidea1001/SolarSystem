@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { ComponentSpec, FormFactor, SubsystemCategory } from '../types/space';
 import { SPACE_COMPONENTS } from '../data/spaceComponents';
-import SatelliteViewer3D from './SatelliteViewer3D';
+import RealSatelliteMissionViewer from './RealSatelliteMissionViewer';
 
 interface MissionArchitectProps {
   currentBOM: ComponentSpec[];
@@ -302,11 +302,11 @@ Generated via Aerovex NewSpace Platform Engine. All rights reserved.
 
       {/* Main Visual & Engineering Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: 3D CAD Twin Viewer (7 cols) */}
+        {/* Left Column: Real Satellite Optical & Sensor Telemetry Viewer (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <SatelliteViewer3D
+          <RealSatelliteMissionViewer
             busType={`${selectedBus} CubeSat Platform`}
-            onSelectSubsystem={(name) => setActiveSubsystemTab(name)}
+            selectedSubsystem={activeSubsystemTab}
           />
 
           {/* Real-time Telemetry & Orbital Dynamics Cards */}

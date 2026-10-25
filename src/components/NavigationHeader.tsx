@@ -109,7 +109,7 @@ export default function NavigationHeader({
             }`}
           >
             <Globe className="w-3.5 h-3.5 text-aeroblue" />
-            <span>World & Orbit Explorer</span>
+            <span>Real Earth & Deep Space</span>
           </button>
 
           <button
