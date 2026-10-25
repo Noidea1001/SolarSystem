@@ -161,6 +161,32 @@ const REAL_WORLD_COUNTRIES: CountryPoint[] = [
       'Advancing satellite engineering with MicroDragon and LOTUSat radar observation for typhoon tracking.',
   },
   {
+    id: 'kor',
+    name: 'South Korea',
+    capital: 'Seoul',
+    lat: 35.9078,
+    lng: 127.7669,
+    timezone: 'UTC+09:00 (Korea Standard Time)',
+    utcOffsetHours: 9,
+    spaceAgency: 'KASA (Korea AeroSpace Administration)',
+    majorSites: 'Naro Space Center Goheung, KARI Mission Control Daejeon',
+    overview:
+      'Operating the Nuri domestic orbital rocket, Danuri lunar orbiter, and national satellite remote sensing constellations.',
+  },
+  {
+    id: 'idn',
+    name: 'Indonesia',
+    capital: 'Jakarta',
+    lat: -0.7893,
+    lng: 113.9213,
+    timezone: 'UTC+07:00 to UTC+09:00',
+    utcOffsetHours: 7,
+    spaceAgency: 'BRIN Space & Aviation Research Organization (LAPAN)',
+    majorSites: 'Biak Equatorial Spaceport, Rancabungur Satellite Ground Station',
+    overview:
+      'Developing equatorial orbital launch infrastructure in Papua and operating domestic telecommunications satellite fleets.',
+  },
+  {
     id: 'deu',
     name: 'Germany',
     capital: 'Berlin',
@@ -185,6 +211,32 @@ const REAL_WORLD_COUNTRIES: CountryPoint[] = [
     majorSites: 'Harwell Space Cluster, SaxaVord Spaceport Shetland, Goonhilly Earth Station',
     overview:
       'Leading SmallSat manufacturing hub and commercial satellite telecommunications center with OneWeb constellation headquarters.',
+  },
+  {
+    id: 'ita',
+    name: 'Italy',
+    capital: 'Rome',
+    lat: 41.8719,
+    lng: 12.5674,
+    timezone: 'UTC+01:00 (Central European Time)',
+    utcOffsetHours: 1,
+    spaceAgency: 'ASI (Italian Space Agency)',
+    majorSites: 'Broglio Space Centre (Malindi Kenya), Fucino Space Operations Center',
+    overview:
+      'Major contributor to European Vega launcher development, Cosmo-SkyMed radar constellation, and ISS pressurized modules.',
+  },
+  {
+    id: 'can',
+    name: 'Canada',
+    capital: 'Ottawa',
+    lat: 56.1304,
+    lng: -106.3468,
+    timezone: 'UTC-03:30 to UTC-08:00',
+    utcOffsetHours: -5,
+    spaceAgency: 'CSA (Canadian Space Agency)',
+    majorSites: 'John H. Chapman Space Centre, RADARSAT Earth Operations',
+    overview:
+      'Pioneers of space robotics (Canadarm series for ISS and Lunar Gateway) and RADARSAT Arctic maritime radar mapping.',
   },
   {
     id: 'aus',
@@ -224,6 +276,32 @@ const REAL_WORLD_COUNTRIES: CountryPoint[] = [
     majorSites: 'MBRSC Mission Control, Dubai Sat Telemetry Complex',
     overview:
       'Operators of the Hope Mars Probe (Emirates Mars Mission) and Rashid lunar rover exploration projects.',
+  },
+  {
+    id: 'egy',
+    name: 'Egypt',
+    capital: 'Cairo',
+    lat: 26.8206,
+    lng: 30.8025,
+    timezone: 'UTC+02:00 (Eastern European Time)',
+    utcOffsetHours: 2,
+    spaceAgency: 'EgSA (Egyptian Space Agency)',
+    majorSites: 'Space City Complex Cairo, Nile Delta Telemetry Ground Station',
+    overview:
+      'Host of the African Space Agency headquarters and operator of NileSat and MisrSat Earth remote sensing constellations.',
+  },
+  {
+    id: 'zaf',
+    name: 'South Africa',
+    capital: 'Pretoria',
+    lat: -30.5595,
+    lng: 22.9375,
+    timezone: 'UTC+02:00 (South Africa Standard Time)',
+    utcOffsetHours: 2,
+    spaceAgency: 'SANSA (South African National Space Agency)',
+    majorSites: 'Hartebeesthoek Radio Astronomy Observatory, Overberg Test Range',
+    overview:
+      'Southern African deep space telemetry node supporting interplanetary mission tracking and Square Kilometre Array (SKA) cosmology.',
   },
 ];
 
@@ -547,7 +625,7 @@ export default function SolarSystemInteractiveGame() {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x020409);
 
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 5000);
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.02, 5000);
     camera.position.set(0, 32, 90);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -623,6 +701,30 @@ export default function SolarSystemInteractiveGame() {
     const coronaMesh = new THREE.Mesh(coronaGeo, coronaMat);
     scene.add(coronaMesh);
 
+    // Solar Flare Glow Sprite on the Sun (creates cinematic sunrise glow on the horizon)
+    const flareCanvas = document.createElement('canvas');
+    flareCanvas.width = 128;
+    flareCanvas.height = 128;
+    const flareCtx = flareCanvas.getContext('2d')!;
+    const grad = flareCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    grad.addColorStop(0.15, 'rgba(254, 240, 138, 0.9)');
+    grad.addColorStop(0.4, 'rgba(56, 189, 248, 0.45)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    flareCtx.fillStyle = grad;
+    flareCtx.fillRect(0, 0, 128, 128);
+    const flareTex = new THREE.CanvasTexture(flareCanvas);
+    const sunFlareMat = new THREE.SpriteMaterial({
+      map: flareTex,
+      blending: THREE.AdditiveBlending,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+    });
+    const sunFlareSprite = new THREE.Sprite(sunFlareMat);
+    sunFlareSprite.scale.set(16, 16, 1);
+    sunMesh.add(sunFlareSprite);
+
     // 2. REAL EARTH WITH TRUE NASA 4K BLUE MARBLE & BLACK MARBLE SHADER
     const earthDayTex = textureLoader.load('/textures/planets/earth_day_4k.jpg');
     const earthNightTex = textureLoader.load('/textures/planets/earth_night_4k.jpg');
@@ -690,7 +792,7 @@ export default function SolarSystemInteractiveGame() {
     });
 
     // Helper: Google Maps Billboard Label
-    const createCountryLabelSprite = (countryName: string, isCambodia: boolean): THREE.Sprite => {
+    const createCountryLabelSprite = (countryName: string, isCambodia: boolean, isUserLocation: boolean = false): THREE.Sprite => {
       const canvas = document.createElement('canvas');
       canvas.width = 256;
       canvas.height = 64;
@@ -698,8 +800,16 @@ export default function SolarSystemInteractiveGame() {
       ctx.clearRect(0, 0, 256, 64);
 
       // Card pill background
-      ctx.fillStyle = isCambodia ? 'rgba(3, 105, 161, 0.92)' : 'rgba(15, 23, 42, 0.88)';
-      ctx.strokeStyle = isCambodia ? '#38bdf8' : 'rgba(148, 163, 184, 0.6)';
+      if (isUserLocation) {
+        ctx.fillStyle = 'rgba(6, 78, 59, 0.95)';
+        ctx.strokeStyle = '#10b981';
+      } else if (isCambodia) {
+        ctx.fillStyle = 'rgba(3, 105, 161, 0.95)';
+        ctx.strokeStyle = '#38bdf8';
+      } else {
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.6)';
+      }
       ctx.lineWidth = 2.5;
 
       const px = 6, py = 10, pw = 244, ph = 44, pr = 8;
@@ -714,7 +824,7 @@ export default function SolarSystemInteractiveGame() {
 
       // Country Name
       ctx.font = 'bold 20px system-ui, -apple-system, sans-serif';
-      ctx.fillStyle = isCambodia ? '#ffffff' : '#f1f5f9';
+      ctx.fillStyle = isUserLocation ? '#34d399' : isCambodia ? '#ffffff' : '#f1f5f9';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(countryName.toUpperCase(), 128, 32);
@@ -832,11 +942,11 @@ export default function SolarSystemInteractiveGame() {
           const isKh = c.id === 'khm';
 
           const dot = new THREE.Mesh(
-            new THREE.SphereGeometry(0.024, 12, 12),
+            new THREE.SphereGeometry(0.02, 12, 12),
             new THREE.MeshBasicMaterial({ color: isKh ? 0x38bdf8 : 0x94a3b8 })
           );
           const ring = new THREE.Mesh(
-            new THREE.RingGeometry(0.03, 0.055, 16),
+            new THREE.RingGeometry(0.025, 0.05, 16),
             new THREE.MeshBasicMaterial({
               color: isKh ? 0x38bdf8 : 0x64748b,
               side: THREE.DoubleSide,
@@ -845,15 +955,23 @@ export default function SolarSystemInteractiveGame() {
             })
           );
           ring.rotation.x = Math.PI / 2;
+
+          // Vertical stem pin connecting surface to label
+          const stemGeo = new THREE.CylinderGeometry(0.002, 0.002, 0.035, 8);
+          const stemMat = new THREE.MeshBasicMaterial({ color: isKh ? 0x38bdf8 : 0x64748b });
+          const stem = new THREE.Mesh(stemGeo, stemMat);
+          stem.position.set(0, 0.018, 0);
+
           mGroup.add(dot);
           mGroup.add(ring);
+          mGroup.add(stem);
 
           // Google Maps Billboard Label
           const label = createCountryLabelSprite(c.name, isKh);
           label.position.set(0, 0.048, 0);
           mGroup.add(label);
 
-          const pos = latLngToVector3(c.lat, c.lng, planet.sizeRadius + 0.02);
+          const pos = latLngToVector3(c.lat, c.lng, planet.sizeRadius + 0.015);
           mGroup.position.copy(pos);
           body.add(mGroup);
           countryMarkers.push({ country: c, marker: mGroup });
@@ -861,14 +979,22 @@ export default function SolarSystemInteractiveGame() {
 
         // GPS User Marker
         userPinGroup = new THREE.Group();
-        const pinDot = new THREE.Mesh(new THREE.SphereGeometry(0.035, 16, 16), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
-        const pinRadar = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.09, 20), new THREE.MeshBasicMaterial({ color: 0x10b981, side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
+        const pinDot = new THREE.Mesh(new THREE.SphereGeometry(0.028, 16, 16), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
+        const pinRadar = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.085, 20), new THREE.MeshBasicMaterial({ color: 0x10b981, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }));
         pinRadar.rotation.x = Math.PI / 2;
+        const pinStem = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.045, 8), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
+        pinStem.position.set(0, 0.022, 0);
+
+        const userPinLabel = createCountryLabelSprite('MY CURRENT GPS LOCATION', false, true);
+        userPinLabel.position.set(0, 0.065, 0);
+
         userPinGroup.add(pinDot);
         userPinGroup.add(pinRadar);
+        userPinGroup.add(pinStem);
+        userPinGroup.add(userPinLabel);
         body.add(userPinGroup);
 
-        const initPinPos = latLngToVector3(REAL_WORLD_COUNTRIES[0].lat, REAL_WORLD_COUNTRIES[0].lng, planet.sizeRadius + 0.035);
+        const initPinPos = latLngToVector3(REAL_WORLD_COUNTRIES[0].lat, REAL_WORLD_COUNTRIES[0].lng, planet.sizeRadius + 0.015);
         userPinGroup.position.copy(initPinPos);
 
         // Real Moon with 27.3 Day Orbital Cycle & 5.14° Inclination
@@ -967,11 +1093,11 @@ export default function SolarSystemInteractiveGame() {
       const dx = e.clientX - sceneContextRef.current.prevX;
       const dy = e.clientY - sceneContextRef.current.prevY;
 
-      sceneContextRef.current.spherical.theta -= dx * 0.0055;
+      sceneContextRef.current.spherical.theta -= dx * 0.004;
       sceneContextRef.current.spherical.phi = THREE.MathUtils.clamp(
-        sceneContextRef.current.spherical.phi - dy * 0.0055,
-        0.1,
-        Math.PI - 0.1
+        sceneContextRef.current.spherical.phi - dy * 0.004,
+        0.05,
+        Math.PI - 0.05
       );
 
       sceneContextRef.current.prevX = e.clientX;
@@ -986,11 +1112,20 @@ export default function SolarSystemInteractiveGame() {
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       if (!sceneContextRef.current) return;
-      const delta = e.deltaY * 0.055;
+
+      const currentR = sceneContextRef.current.spherical.radius;
+      // Proportional zoom sensitivity: ultra smooth when close to Earth surface, faster when in deep space
+      const zoomFactor = currentR < 2.0 ? 0.0018 * currentR : currentR < 10.0 ? 0.015 : 0.055;
+      const delta = e.deltaY * zoomFactor;
+
+      const isTargetingBody = sceneContextRef.current.targetedMesh !== null;
+      // Allow zooming right down to 1.14 (Low Earth Orbit / satellite altitude) when looking at Earth!
+      const minRadius = isTargetingBody ? 1.14 : 3.0;
+
       sceneContextRef.current.spherical.radius = THREE.MathUtils.clamp(
-        sceneContextRef.current.spherical.radius + delta,
-        3.2,
-        250
+        currentR + delta,
+        minRadius,
+        350
       );
     };
 
@@ -1185,7 +1320,46 @@ export default function SolarSystemInteractiveGame() {
     sceneContextRef.current.spherical.phi = 1.15;
   };
 
-  // Select Country on Earth
+  // Cinematic Low Earth Orbit Sunrise Horizon View (Matching photo)
+  const handleCinematicHorizonView = () => {
+    const earthData = REAL_PLANETS_PHYSICS.find((p) => p.id === 'earth')!;
+    setSelectedPlanet(earthData);
+    setIsEarthFocused(true);
+
+    if (!sceneContextRef.current) return;
+    const earthItem = sceneContextRef.current.planetMeshes.find((m) => m.planet.id === 'earth');
+    if (!earthItem) return;
+
+    sceneContextRef.current.targetedMesh = earthItem.body;
+    // Skim right above the atmosphere at 1.28 radius
+    sceneContextRef.current.spherical.radius = 1.28;
+    // Tangential horizon grazing angle
+    sceneContextRef.current.spherical.phi = 1.48;
+
+    if (sceneContextRef.current.earthMesh) {
+      const eRot = sceneContextRef.current.earthMesh.rotation.y;
+      // Position camera looking along the terminator line toward the rising Sun
+      sceneContextRef.current.spherical.theta = -eRot + Math.PI / 2 + 0.35;
+    }
+  };
+
+  // High Orbit Full Globe View
+  const handleGlobalEarthView = () => {
+    const earthData = REAL_PLANETS_PHYSICS.find((p) => p.id === 'earth')!;
+    setSelectedPlanet(earthData);
+    setIsEarthFocused(true);
+
+    if (!sceneContextRef.current) return;
+    const earthItem = sceneContextRef.current.planetMeshes.find((m) => m.planet.id === 'earth');
+    if (!earthItem) return;
+
+    sceneContextRef.current.targetedMesh = earthItem.body;
+    sceneContextRef.current.spherical.radius = 2.65;
+    sceneContextRef.current.spherical.phi = 1.22;
+    sceneContextRef.current.spherical.theta = 0.45;
+  };
+
+  // Select Country on Earth (Google Maps Mode: zooms close to country)
   const handleSelectCountry = (country: CountryPoint) => {
     setSelectedCountry(country);
     setIsEarthFocused(true);
@@ -1198,7 +1372,8 @@ export default function SolarSystemInteractiveGame() {
     if (!earthItem) return;
 
     sceneContextRef.current.targetedMesh = earthItem.body;
-    sceneContextRef.current.spherical.radius = 2.75;
+    // Zoom close down to country territory like Google Maps
+    sceneContextRef.current.spherical.radius = 1.38;
 
     // Center camera view directly onto country coordinates
     if (sceneContextRef.current.earthMesh) {
@@ -1220,7 +1395,7 @@ export default function SolarSystemInteractiveGame() {
     }
   };
 
-  // GPS Locate My Current Coordinates on Real Earth
+  // GPS Locate My Current Coordinates on Real Earth (Astronaut Pinpoint Mode)
   const handleLocateMyPosition = () => {
     if (!navigator.geolocation) {
       setLocatingStatus('Browser does not support geolocation telemetry');
@@ -1236,11 +1411,12 @@ export default function SolarSystemInteractiveGame() {
 
         if (sceneContextRef.current && sceneContextRef.current.userPinMesh && sceneContextRef.current.earthMesh) {
           const earthData = REAL_PLANETS_PHYSICS.find((p) => p.id === 'earth')!;
-          const posVec = latLngToVector3(latitude, longitude, earthData.sizeRadius + 0.035);
+          const posVec = latLngToVector3(latitude, longitude, earthData.sizeRadius + 0.015);
           sceneContextRef.current.userPinMesh.position.copy(posVec);
 
           handleSelectPlanet(earthData);
-          sceneContextRef.current.spherical.radius = 2.6;
+          // Zoom close down directly above user location
+          sceneContextRef.current.spherical.radius = 1.30;
 
           const eRot = sceneContextRef.current.earthMesh.rotation.y;
           const lngRad = (longitude * Math.PI) / 180;
@@ -1260,6 +1436,8 @@ export default function SolarSystemInteractiveGame() {
       },
       (err) => {
         setLocatingStatus(`GPS fallback: Using Cambodia coordinates (${err.message})`);
+        // Fallback to Cambodia center
+        handleSelectCountry(REAL_WORLD_COUNTRIES[0]);
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
@@ -1362,6 +1540,56 @@ export default function SolarSystemInteractiveGame() {
         </div>
       </div>
 
+      {/* Quick Perspective Views: Astronaut Horizon Sunrise, Global Earth, Cambodia, GPS */}
+      <div className="absolute top-16 inset-x-4 z-20 flex justify-center pointer-events-none">
+        <div className="pointer-events-auto flex items-center gap-1.5 bg-space-950/90 backdrop-blur-md p-1.5 rounded-xl border border-space-700/80 shadow-2xl overflow-x-auto text-xs">
+          <button
+            onClick={handleCinematicHorizonView}
+            className="px-3 py-1.5 rounded-lg bg-aeroamber/20 hover:bg-aeroamber/30 text-aeroamber-light border border-aeroamber/40 font-bold transition-all flex items-center gap-1.5 shadow-sm whitespace-nowrap"
+            title="Astronaut Horizon Sunrise Perspective (View from Orbit)"
+          >
+            <Flame className="w-3.5 h-3.5 text-aeroamber" />
+            <span>LEO SUNRISE HORIZON</span>
+          </button>
+
+          <button
+            onClick={handleGlobalEarthView}
+            className="px-3 py-1.5 rounded-lg bg-space-850 hover:bg-space-800 text-aeroblue border border-aeroblue/40 font-bold transition-all flex items-center gap-1.5 whitespace-nowrap"
+            title="High Orbit Astronaut Globe View"
+          >
+            <Globe className="w-3.5 h-3.5 text-aeroblue" />
+            <span>GLOBAL EARTH</span>
+          </button>
+
+          <button
+            onClick={() => handleSelectCountry(REAL_WORLD_COUNTRIES[0])}
+            className="px-3 py-1.5 rounded-lg bg-space-850 hover:bg-space-800 text-white border border-space-700 font-bold transition-all flex items-center gap-1.5 whitespace-nowrap"
+            title="Zoom into Cambodia (Angkor & Phnom Penh)"
+          >
+            <MapPin className="w-3.5 h-3.5 text-aeroblue" />
+            <span>CAMBODIA</span>
+          </button>
+
+          <button
+            onClick={handleLocateMyPosition}
+            className="px-3 py-1.5 rounded-lg bg-aerogreen/20 hover:bg-aerogreen/30 text-aerogreen border border-aerogreen/40 font-bold transition-all flex items-center gap-1.5 shadow-sm whitespace-nowrap"
+            title="Pinpoint my live GPS location on Earth"
+          >
+            <Navigation className="w-3.5 h-3.5 text-aerogreen animate-pulse" />
+            <span>PINPOINT MY GPS</span>
+          </button>
+
+          <button
+            onClick={handleResetView}
+            className="px-3 py-1.5 rounded-lg bg-space-850 hover:bg-space-800 text-space-300 hover:text-white border border-space-700 transition-all flex items-center gap-1.5 whitespace-nowrap"
+            title="Full Solar System View"
+          >
+            <Compass className="w-3.5 h-3.5 text-space-400" />
+            <span>SOLAR SYSTEM</span>
+          </button>
+        </div>
+      </div>
+
       {/* Bottom Planet Quick-Selector Bar */}
       <div className="absolute bottom-5 inset-x-4 z-20 flex justify-center pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-1 bg-space-950/90 backdrop-blur-md p-1.5 rounded-xl border border-space-700/80 shadow-2xl overflow-x-auto max-w-full">
@@ -1403,7 +1631,7 @@ export default function SolarSystemInteractiveGame() {
 
       {/* Floating Day/Night Live Status HUD (When Earth is Focused) */}
       {isEarthFocused && (
-        <div className="absolute top-20 left-4 z-20 pointer-events-none max-w-xs">
+        <div className="absolute top-28 left-4 z-20 pointer-events-none max-w-xs">
           <div className="bg-space-950/85 backdrop-blur-md p-3.5 rounded-lg border border-space-700/80 space-y-2 shadow-lg">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-aerogreen animate-pulse" />
@@ -1427,6 +1655,10 @@ export default function SolarSystemInteractiveGame() {
                 </span>
               </div>
               <div className="flex justify-between">
+                <span className="text-space-400">PERSPECTIVE:</span>
+                <span className="text-aerocyan font-bold">OUTER SPACE (ORBITAL PERSPECTIVE)</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-space-400">LIVE UTC ASTRONOMICAL TIME:</span>
                 <span className="text-space-200">{liveUtcString || 'Synchronized'}</span>
               </div>
@@ -1437,7 +1669,7 @@ export default function SolarSystemInteractiveGame() {
 
       {/* Side Drawer: Detailed Planet & Country Telemetry (Like Google Maps) */}
       {selectedPlanet && (
-        <div className="absolute top-20 right-4 bottom-20 w-full max-w-md z-30 flex flex-col pointer-events-auto">
+        <div className="absolute top-28 right-4 bottom-20 w-full max-w-md z-30 flex flex-col pointer-events-auto">
           <div className="hud-panel p-5 rounded-xl border border-space-700/80 bg-space-900/95 backdrop-blur-xl shadow-2xl flex-1 flex flex-col justify-between overflow-hidden">
             {/* Header */}
             <div className="border-b border-space-800 pb-3 flex items-start justify-between">
