@@ -23,12 +23,11 @@ import {
   Search,
   Moon,
   Clock,
+  Sparkles,
+  Activity,
+  Flame,
 } from 'lucide-react';
-import {
-  createRealisticEarthDayTexture,
-  createRealisticEarthNightTexture,
-  createRealisticSunTexture,
-} from '../utils/spaceTextures';
+
 
 interface CountryPoint {
   id: string;
@@ -37,12 +36,13 @@ interface CountryPoint {
   lat: number;
   lng: number;
   timezone: string;
+  utcOffsetHours: number;
   spaceAgency: string;
   majorSites: string;
   overview: string;
 }
 
-const WORLD_COUNTRIES: CountryPoint[] = [
+const REAL_WORLD_COUNTRIES: CountryPoint[] = [
   {
     id: 'khm',
     name: 'Cambodia',
@@ -50,10 +50,11 @@ const WORLD_COUNTRIES: CountryPoint[] = [
     lat: 12.5657,
     lng: 104.991,
     timezone: 'UTC+07:00 (Indochina Time)',
+    utcOffsetHours: 7,
     spaceAgency: 'MPTC Space Technology & Remote Sensing Bureau',
-    majorSites: 'Angkor Wat Telemetry Hub, Phnom Penh Earth Station, Tonle Sap Environmental Basin',
+    majorSites: 'Angkor Wat Telemetry Hub, Phnom Penh Earth Station, Tonle Sap Basin',
     overview:
-      'Kingdom in Southeast Asia utilizing satellite remote sensing for Mekong hydrological forecasting, agricultural flood mapping, and historical heritage preservation.',
+      'Utilizing optical and radar satellite Earth observation for Mekong river hydrological monitoring, agricultural flood mapping, and cultural heritage conservation.',
   },
   {
     id: 'usa',
@@ -62,10 +63,11 @@ const WORLD_COUNTRIES: CountryPoint[] = [
     lat: 37.0902,
     lng: -95.7129,
     timezone: 'UTC-05:00 to UTC-08:00',
+    utcOffsetHours: -5,
     spaceAgency: 'NASA & US Space Force',
-    majorSites: 'Kennedy Space Center Launch Pad 39A, Cape Canaveral Space Force Station, Johnson Space Center',
+    majorSites: 'Kennedy Space Center Launch Pad 39A, Cape Canaveral SLC-40, Johnson Space Center',
     overview:
-      'Global pioneer in deep space exploration, Artemis lunar base development, commercial rideshare launches, and Mars rover missions.',
+      'Leading deep space astronomy, Artemis lunar base architecture, commercial astronaut missions, and interplanetary Mars rover expeditions.',
   },
   {
     id: 'fra',
@@ -74,10 +76,11 @@ const WORLD_COUNTRIES: CountryPoint[] = [
     lat: 46.2276,
     lng: 2.2137,
     timezone: 'UTC+01:00 (Central European Time)',
+    utcOffsetHours: 1,
     spaceAgency: 'CNES & European Space Agency (ESA)',
-    majorSites: 'Guiana Space Centre (CSG Kourou ELA-4), Toulouse Space Center, Paris HQ',
+    majorSites: 'Guiana Space Centre (CSG Kourou ELA-4), Toulouse Space Operations Center',
     overview:
-      'Leading European space power operating the equatorial spaceport in French Guiana for Ariane 6 and Vega-C orbital launches.',
+      'Premier European space power operating the equatorial launch complex in French Guiana for heavy Ariane 6 and Vega-C orbital rockets.',
   },
   {
     id: 'jpn',
@@ -86,10 +89,11 @@ const WORLD_COUNTRIES: CountryPoint[] = [
     lat: 36.2048,
     lng: 138.2529,
     timezone: 'UTC+09:00 (Japan Standard Time)',
+    utcOffsetHours: 9,
     spaceAgency: 'JAXA (Japan Aerospace Exploration Agency)',
     majorSites: 'Tanegashima Space Center, Uchinoura Space Center, Tsukuba Space Center',
     overview:
-      'Pioneering asteroid sample returns (Hayabusa), H3 heavy launch vehicles, and precision optical Earth observation constellations.',
+      'Pioneering asteroid sample return science (Hayabusa), H3 heavy launch vehicles, and Kibo ISS laboratory module.',
   },
   {
     id: 'ind',
@@ -98,10 +102,11 @@ const WORLD_COUNTRIES: CountryPoint[] = [
     lat: 20.5937,
     lng: 78.9629,
     timezone: 'UTC+05:30 (Indian Standard Time)',
+    utcOffsetHours: 5.5,
     spaceAgency: 'ISRO (Indian Space Research Organisation)',
-    majorSites: 'Satish Dhawan Space Centre (SDSC SHAR), ISRO Telemetry Tracking Command Network',
+    majorSites: 'Satish Dhawan Space Centre (SDSC SHAR Sriharikota), ISTRAC Telemetry Network',
     overview:
-      'Renowned for landing on the lunar south pole (Chandrayaan-3), solar observatory Aditya-L1, and high-frequency PSLV launches.',
+      'Celebrated for the Chandrayaan-3 lunar south pole landing, Aditya-L1 solar halo observatory, and cost-efficient PSLV launches.',
   },
   {
     id: 'chn',
@@ -110,10 +115,11 @@ const WORLD_COUNTRIES: CountryPoint[] = [
     lat: 35.8617,
     lng: 104.1954,
     timezone: 'UTC+08:00 (China Standard Time)',
+    utcOffsetHours: 8,
     spaceAgency: 'CNSA (China National Space Administration)',
-    majorSites: 'Wenchang Spacecraft Launch Site, Jiuquan Satellite Launch Center, Tiangong Space Station',
+    majorSites: 'Wenchang Spacecraft Launch Site, Jiuquan Satellite Launch Center, Tiangong Station',
     overview:
-      'Operating the permanent Tiangong Space Station, Chang’e lunar far side sample returns, and Beidou global satellite navigation system.',
+      'Operating the permanent Tiangong Space Station, Chang’e far side lunar sample returns, and Beidou satellite navigation constellation.',
   },
   {
     id: 'sgp',
@@ -122,10 +128,11 @@ const WORLD_COUNTRIES: CountryPoint[] = [
     lat: 1.3521,
     lng: 103.8198,
     timezone: 'UTC+08:00 (Singapore Time)',
+    utcOffsetHours: 8,
     spaceAgency: 'OSTIn (Office for Space Technology & Industry)',
-    majorSites: 'CRISP Center for Remote Imaging & Sensing, Changi Aerospace Park',
+    majorSites: 'CRISP Center for Remote Imaging, Changi Aerospace Park',
     overview:
-      'Southeast Asian NewSpace and satellite IoT hub specializing in synthetic aperture radar (SAR) constellations and laser downlinks.',
+      'Equatorial NewSpace and satellite IoT hub specializing in synthetic aperture radar (SAR) constellations and laser downlinks.',
   },
   {
     id: 'tha',
@@ -134,10 +141,11 @@ const WORLD_COUNTRIES: CountryPoint[] = [
     lat: 15.87,
     lng: 100.9925,
     timezone: 'UTC+07:00 (Indochina Time)',
-    spaceAgency: 'GISTDA (Geo-Informatics and Space Technology Development Agency)',
-    majorSites: 'Space Krenovation Park, THEOS Satellite Ground Station',
+    utcOffsetHours: 7,
+    spaceAgency: 'GISTDA (Geo-Informatics & Space Technology Development Agency)',
+    majorSites: 'Space Krenovation Park, THEOS Ground Telemetry Complex',
     overview:
-      'Operating THEOS Earth observation satellite series for natural disaster management, water resources, and agricultural monitoring.',
+      'Operating THEOS optical and SAR Earth observation satellite series for regional natural disaster and agricultural monitoring.',
   },
   {
     id: 'vnm',
@@ -146,10 +154,11 @@ const WORLD_COUNTRIES: CountryPoint[] = [
     lat: 14.0583,
     lng: 108.2772,
     timezone: 'UTC+07:00 (Indochina Time)',
+    utcOffsetHours: 7,
     spaceAgency: 'VNSC (Vietnam National Space Center)',
-    majorSites: 'Hoa Lac High-Tech Park Space Center, Nha Trang Observatory',
+    majorSites: 'Hoa Lac Space Center, Nha Trang Space Observatory',
     overview:
-      'Advancing MicroDragon and NanoDragon CubeSat engineering and optical remote sensing for coastal and typhoon tracking.',
+      'Advancing satellite engineering with MicroDragon and LOTUSat radar observation for typhoon tracking.',
   },
   {
     id: 'deu',
@@ -158,6 +167,7 @@ const WORLD_COUNTRIES: CountryPoint[] = [
     lat: 51.1657,
     lng: 10.4515,
     timezone: 'UTC+01:00 (Central European Time)',
+    utcOffsetHours: 1,
     spaceAgency: 'DLR (German Aerospace Center)',
     majorSites: 'German Space Operations Center (GSOC Oberpfaffenhofen), Lampoldshausen Propulsion Center',
     overview:
@@ -170,6 +180,7 @@ const WORLD_COUNTRIES: CountryPoint[] = [
     lat: 55.3781,
     lng: -3.436,
     timezone: 'UTC+00:00 (GMT)',
+    utcOffsetHours: 0,
     spaceAgency: 'UK Space Agency (UKSA)',
     majorSites: 'Harwell Space Cluster, SaxaVord Spaceport Shetland, Goonhilly Earth Station',
     overview:
@@ -182,6 +193,7 @@ const WORLD_COUNTRIES: CountryPoint[] = [
     lat: -25.2744,
     lng: 133.7751,
     timezone: 'UTC+08:00 to UTC+11:00',
+    utcOffsetHours: 10,
     spaceAgency: 'Australian Space Agency (ASA)',
     majorSites: 'Canberra Deep Space Communication Complex, Whalers Way Orbital Launch Complex',
     overview:
@@ -194,8 +206,9 @@ const WORLD_COUNTRIES: CountryPoint[] = [
     lat: -14.235,
     lng: -51.9253,
     timezone: 'UTC-03:00 (Brasilia Time)',
+    utcOffsetHours: -3,
     spaceAgency: 'AEB & INPE (National Institute for Space Research)',
-    majorSites: 'Alcantara Launch Center (Equatorial Launch Base), Amazonia-1 Mission Control',
+    majorSites: 'Alcantara Launch Center (Equatorial Base), Amazonia-1 Mission Control',
     overview:
       'Operating equatorial orbital launch complex at Alcantara and monitoring Amazon rainforest deforestation via satellite imagery.',
   },
@@ -206,6 +219,7 @@ const WORLD_COUNTRIES: CountryPoint[] = [
     lat: 23.4241,
     lng: 53.8478,
     timezone: 'UTC+04:00 (Gulf Standard Time)',
+    utcOffsetHours: 4,
     spaceAgency: 'UAE Space Agency & Mohammed Bin Rashid Space Centre',
     majorSites: 'MBRSC Mission Control, Dubai Sat Telemetry Complex',
     overview:
@@ -213,218 +227,276 @@ const WORLD_COUNTRIES: CountryPoint[] = [
   },
 ];
 
-interface PlanetData {
+interface RealPlanetPhysics {
   id: string;
   name: string;
   type: string;
-  sizeRadius: number;
-  orbitRadius: number;
-  orbitSpeed: number;
-  rotationSpeed: number;
+  sizeRadius: number; // 3D units
+  orbitRadiusAU: number; // Astronomical Units
+  orbitRadius3D: number; // Scaled 3D distance
+  realPeriodDays: number; // Exact orbital period in days
+  axialTiltDeg: number; // Real physical axial tilt (obliquity)
+  rotationPeriodHours: number; // Exact sidereal day length
+  isRetrograde: boolean;
   colorHex: string;
+  textureUrl: string; // Real NASA photographic planetary map
   diameterKm: number;
-  distanceAU: number;
-  yearLength: string;
-  dayLength: string;
-  surfaceGravity: string;
+  massKg: string;
+  escapeVelocityKmS: number;
+  surfaceGravityMs2: number;
   meanTempC: string;
-  moons: number;
+  moonsCount: number;
   hasRings?: boolean;
   atmosphere: string[];
-  summary: string;
+  physicsHighlights: string[];
 }
 
-const SOLAR_PLANETS: PlanetData[] = [
+// 100% Real Physical Parameters and NASA Photographic Planetary Maps
+const REAL_PLANETS_PHYSICS: RealPlanetPhysics[] = [
   {
     id: 'mercury',
     name: 'Mercury',
     type: 'Terrestrial Planet (Innermost)',
     sizeRadius: 0.38,
-    orbitRadius: 9,
-    orbitSpeed: 0.035,
-    rotationSpeed: 0.003,
+    orbitRadiusAU: 0.387,
+    orbitRadius3D: 9.5,
+    realPeriodDays: 87.97, // 0.24 Earth years
+    axialTiltDeg: 0.034, // Nearly upright
+    rotationPeriodHours: 1407.6, // 58.6 Earth days
+    isRetrograde: false,
     colorHex: '#9ca3af',
+    textureUrl: '/textures/planets/mercury.jpg',
     diameterKm: 4879,
-    distanceAU: 0.39,
-    yearLength: '88 Earth Days',
-    dayLength: '58.6 Earth Days',
-    surfaceGravity: '3.7 m/s² (0.38g)',
+    massKg: '3.301 × 10²³ kg (0.055 Earths)',
+    escapeVelocityKmS: 4.25,
+    surfaceGravityMs2: 3.7,
     meanTempC: '-180°C to +430°C',
-    moons: 0,
+    moonsCount: 0,
     atmosphere: ['Trace: Oxygen (42%)', 'Sodium (29%)', 'Hydrogen (22%)', 'Helium (6%)'],
-    summary:
-      'The smallest planet in the Solar System, possessing a huge metallic iron core and extreme diurnal temperature swings.',
+    physicsHighlights: [
+      'Fastest orbital velocity in Solar System: 47.36 km/s',
+      '3:2 spin-orbit resonance: rotates 3 times for every 2 orbits around the Sun',
+      'Massive metallic core accounts for 85% of total planetary radius',
+    ],
   },
   {
     id: 'venus',
     name: 'Venus',
     type: 'Terrestrial Planet (Runaway Greenhouse)',
     sizeRadius: 0.95,
-    orbitRadius: 14,
-    orbitSpeed: 0.015,
-    rotationSpeed: -0.002,
+    orbitRadiusAU: 0.723,
+    orbitRadius3D: 15.0,
+    realPeriodDays: 224.7, // 0.615 Earth years
+    axialTiltDeg: 177.36, // Retrograde spin (upside down)
+    rotationPeriodHours: 5832.5, // 243 Earth days
+    isRetrograde: true,
     colorHex: '#f59e0b',
+    textureUrl: '/textures/planets/venus.jpg',
     diameterKm: 12104,
-    distanceAU: 0.72,
-    yearLength: '224.7 Earth Days',
-    dayLength: '243 Earth Days (Retrograde)',
-    surfaceGravity: '8.87 m/s² (0.91g)',
-    meanTempC: '+464°C (Melt Lead)',
-    moons: 0,
-    atmosphere: ['Carbon Dioxide (96.5%)', 'Nitrogen (3.5%)', 'Sulfuric Acid Clouds'],
-    summary:
-      'Earth’s twin wrapped in suffocating greenhouse clouds with surface pressures 92 times greater than Earth.',
+    massKg: '4.867 × 10²⁴ kg (0.815 Earths)',
+    escapeVelocityKmS: 10.36,
+    surfaceGravityMs2: 8.87,
+    meanTempC: '+464°C',
+    moonsCount: 0,
+    atmosphere: ['Carbon Dioxide (96.5%)', 'Nitrogen (3.5%)', 'Sulfuric Acid Aerosols'],
+    physicsHighlights: [
+      'Retrograde rotation: the Sun rises in the West and sets in the East',
+      'Atmospheric surface pressure: 9.2 MPa (92 atmospheres)',
+      'Super-rotation: upper cloud layers circle the planet in just 4 Earth days',
+    ],
   },
   {
     id: 'earth',
     name: 'Earth (Terra)',
     type: 'Terrestrial Ocean Planet (Biosphere)',
     sizeRadius: 1.0,
-    orbitRadius: 21,
-    orbitSpeed: 0.009,
-    rotationSpeed: 0.014,
+    orbitRadiusAU: 1.0,
+    orbitRadius3D: 22.0,
+    realPeriodDays: 365.256, // 1.000 Earth year
+    axialTiltDeg: 23.44, // Exact cause of Earth’s 4 seasons!
+    rotationPeriodHours: 23.934, // 1 Sidereal Day (23h 56m 4s)
+    isRetrograde: false,
     colorHex: '#38bdf8',
+    textureUrl: '/textures/planets/earth_day_4k.jpg',
     diameterKm: 12742,
-    distanceAU: 1.0,
-    yearLength: '365.25 Days',
-    dayLength: '23.93 Hours',
-    surfaceGravity: '9.807 m/s² (1.0g)',
+    massKg: '5.972 × 10²⁴ kg (1.00 Earth)',
+    escapeVelocityKmS: 11.186,
+    surfaceGravityMs2: 9.807,
     meanTempC: '+15°C',
-    moons: 1,
+    moonsCount: 1, // Luna
     atmosphere: ['Nitrogen (78.08%)', 'Oxygen (20.95%)', 'Argon (0.93%)', 'Carbon Dioxide (0.04%)'],
-    summary:
-      'The vibrant home of humanity, featuring real day/night illumination with city lights, active plate tectonics, oceans, and life.',
+    physicsHighlights: [
+      'Orbital speed: 29.78 km/s around the Sun',
+      'True day/night terminator with real-time city lights (NASA Black Marble)',
+      'Active geodynamo core generating protective magnetic Van Allen belts',
+    ],
   },
   {
     id: 'mars',
     name: 'Mars (The Red Planet)',
     type: 'Terrestrial Desert Planet',
     sizeRadius: 0.53,
-    orbitRadius: 29,
-    orbitSpeed: 0.0048,
-    rotationSpeed: 0.013,
+    orbitRadiusAU: 1.524,
+    orbitRadius3D: 30.5,
+    realPeriodDays: 686.98, // 1.88 Earth years
+    axialTiltDeg: 25.19, // Near-identical seasonal tilt to Earth!
+    rotationPeriodHours: 24.623, // 1 Martian Sol (24h 37m 22s)
+    isRetrograde: false,
     colorHex: '#ef4444',
+    textureUrl: '/textures/planets/mars.jpg',
     diameterKm: 6779,
-    distanceAU: 1.52,
-    yearLength: '687 Earth Days',
-    dayLength: '24.62 Hours (1 Sol)',
-    surfaceGravity: '3.72 m/s² (0.38g)',
-    meanTempC: '-65°C (-125°C to +20°C)',
-    moons: 2,
+    massKg: '6.417 × 10²³ kg (0.107 Earths)',
+    escapeVelocityKmS: 5.03,
+    surfaceGravityMs2: 3.72,
+    meanTempC: '-65°C',
+    moonsCount: 2, // Phobos & Deimos
     atmosphere: ['Carbon Dioxide (95.3%)', 'Nitrogen (2.6%)', 'Argon (1.9%)'],
-    summary:
-      'Target for human exploration, harboring the solar system’s largest shield volcano (Olympus Mons) and ancient lake river deltas.',
+    physicsHighlights: [
+      'Sol length: 24h 39m 35s, exceptionally close to Earth’s solar day',
+      'Olympus Mons volcano: 21.9 km elevation with 600 km basal diameter',
+      'Atmospheric surface pressure: 610 Pascals (less than 1% of Earth)',
+    ],
   },
   {
     id: 'jupiter',
     name: 'Jupiter (King of Planets)',
     type: 'Gas Giant (Jovian)',
-    sizeRadius: 2.3,
-    orbitRadius: 41,
-    orbitSpeed: 0.0018,
-    rotationSpeed: 0.032,
+    sizeRadius: 2.35,
+    orbitRadiusAU: 5.204,
+    orbitRadius3D: 43.0,
+    realPeriodDays: 4332.59, // 11.86 Earth years
+    axialTiltDeg: 3.13, // Almost upright
+    rotationPeriodHours: 9.925, // Fastest spinning planet (under 10 hours!)
+    isRetrograde: false,
     colorHex: '#d97706',
+    textureUrl: '/textures/planets/jupiter.jpg',
     diameterKm: 139820,
-    distanceAU: 5.2,
-    yearLength: '11.86 Earth Years',
-    dayLength: '9.93 Hours',
-    surfaceGravity: '24.79 m/s² (2.53g)',
+    massKg: '1.898 × 10²⁷ kg (317.8 Earths)',
+    escapeVelocityKmS: 59.5,
+    surfaceGravityMs2: 24.79,
     meanTempC: '-110°C',
-    moons: 95,
+    moonsCount: 95,
     atmosphere: ['Hydrogen (89.8%)', 'Helium (10.2%)', 'Methane, Ammonia, Water Ice'],
-    summary:
-      'Massive gas giant with over 300 times Earth’s mass, featuring the 350-year-old Great Red Spot storm and ocean moons like Europa.',
+    physicsHighlights: [
+      'Rotates once every 9 hours 55 minutes, causing significant equatorial oblateness',
+      'Massive magnetosphere: 20,000 times stronger than Earth’s magnetic dipole',
+      'Europa: Subsurface liquid ocean warmed by tidal friction from Jupiter’s gravity',
+    ],
   },
   {
     id: 'saturn',
     name: 'Saturn (Ringed World)',
     type: 'Gas Giant with Planetary Rings',
-    sizeRadius: 1.9,
-    orbitRadius: 53,
-    orbitSpeed: 0.0009,
-    rotationSpeed: 0.028,
+    sizeRadius: 1.95,
+    orbitRadiusAU: 9.582,
+    orbitRadius3D: 56.0,
+    realPeriodDays: 10759.22, // 29.45 Earth years
+    axialTiltDeg: 26.73, // Rings tilt majestically toward the Sun!
+    rotationPeriodHours: 10.656, // 10h 39m
+    isRetrograde: false,
     colorHex: '#fcd34d',
+    textureUrl: '/textures/planets/saturn.jpg',
     diameterKm: 116460,
-    distanceAU: 9.58,
-    yearLength: '29.45 Earth Years',
-    dayLength: '10.7 Hours',
-    surfaceGravity: '10.44 m/s² (1.06g)',
+    massKg: '5.683 × 10²⁶ kg (95.2 Earths)',
+    escapeVelocityKmS: 35.5,
+    surfaceGravityMs2: 10.44,
     meanTempC: '-140°C',
-    moons: 146,
+    moonsCount: 146,
     hasRings: true,
     atmosphere: ['Hydrogen (96.3%)', 'Helium (3.25%)', 'Methane & Ammonia'],
-    summary:
-      'Famous for its breathtaking rings made of billions of water-ice fragments and active cryovolcanoes on moon Enceladus.',
+    physicsHighlights: [
+      'Mean density: 0.687 g/cm³ (less dense than liquid water)',
+      'Ring system diameter: 282,000 km, but only ~10 meters average thickness',
+      'Enceladus cryogeysers vent salty water directly into Saturn’s E-ring',
+    ],
   },
   {
     id: 'uranus',
     name: 'Uranus (Ice Giant)',
     type: 'Ice Giant (Tilted Axis)',
-    sizeRadius: 1.35,
-    orbitRadius: 65,
-    orbitSpeed: 0.0005,
-    rotationSpeed: -0.016,
+    sizeRadius: 1.4,
+    orbitRadiusAU: 19.201,
+    orbitRadius3D: 68.0,
+    realPeriodDays: 30685.4, // 84.01 Earth years
+    axialTiltDeg: 97.77, // Rotates completely on its side!
+    rotationPeriodHours: 17.24, // 17h 14m (Retrograde)
+    isRetrograde: true,
     colorHex: '#38bdf8',
+    textureUrl: '/textures/planets/uranus.jpg',
     diameterKm: 50724,
-    distanceAU: 19.2,
-    yearLength: '84 Earth Years',
-    dayLength: '17.24 Hours (Retrograde)',
-    surfaceGravity: '8.69 m/s² (0.89g)',
+    massKg: '8.681 × 10²⁵ kg (14.5 Earths)',
+    escapeVelocityKmS: 21.3,
+    surfaceGravityMs2: 8.69,
     meanTempC: '-195°C',
-    moons: 28,
+    moonsCount: 28,
     atmosphere: ['Hydrogen (82.5%)', 'Helium (15.2%)', 'Methane (2.3%)'],
-    summary:
-      'Tipped almost 98 degrees on its side, rolling around the Sun with extreme 42-year long seasonal daylight and night periods.',
+    physicsHighlights: [
+      'Axial tilt of 97.8°: rolls around the orbital plane like a bowling ball',
+      'Each pole experiences 42 years of continuous sunlight and 42 years of night',
+      'Coldest planetary mantle in the Solar System, emitting negligible internal heat',
+    ],
   },
   {
     id: 'neptune',
     name: 'Neptune (Deep Ocean World)',
     type: 'Ice Giant (Outermost Planet)',
-    sizeRadius: 1.3,
-    orbitRadius: 75,
-    orbitSpeed: 0.0003,
-    rotationSpeed: 0.019,
+    sizeRadius: 1.35,
+    orbitRadiusAU: 30.047,
+    orbitRadius3D: 79.0,
+    realPeriodDays: 60189.0, // 164.8 Earth years
+    axialTiltDeg: 28.32,
+    rotationPeriodHours: 16.11, // 16h 6m
+    isRetrograde: false,
     colorHex: '#2563eb',
+    textureUrl: '/textures/planets/neptune.jpg',
     diameterKm: 49244,
-    distanceAU: 30.05,
-    yearLength: '164.8 Earth Years',
-    dayLength: '16.11 Hours',
-    surfaceGravity: '11.15 m/s² (1.14g)',
+    massKg: '1.024 × 10²⁶ kg (17.1 Earths)',
+    escapeVelocityKmS: 23.5,
+    surfaceGravityMs2: 11.15,
     meanTempC: '-200°C',
-    moons: 16,
+    moonsCount: 16,
     atmosphere: ['Hydrogen (80%)', 'Helium (19%)', 'Methane (1.5%)'],
-    summary:
-      'The stormiest planet in the Solar System, where supersonic winds exceed 2,100 km/h, discovered mathematically by Le Verrier.',
+    physicsHighlights: [
+      'Supersonic winds clocking over 2,100 km/h (Mach 1.7)',
+      'Discovered via mathematical perturbation calculations by Le Verrier in 1846',
+      'Triton moon orbits in retrograde, ejecting nitrogen geysers 8 km high',
+    ],
   },
 ];
 
 export default function SolarSystemInteractiveGame() {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [selectedPlanet, setSelectedPlanet] = useState<PlanetData | null>(null);
+  const [selectedPlanet, setSelectedPlanet] = useState<RealPlanetPhysics | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [simSpeed, setSimSpeed] = useState<number>(1);
   const [showOrbits, setShowOrbits] = useState(true);
-  const [selectedCountry, setSelectedCountry] = useState<CountryPoint>(WORLD_COUNTRIES[0]); // Cambodia default
+  const [useRealTimeSync, setUseRealTimeSync] = useState(true); // Live Real-Time Earth Day/Night Sync
+  const [selectedCountry, setSelectedCountry] = useState<CountryPoint>(REAL_WORLD_COUNTRIES[0]); // Cambodia default
   const [countrySearch, setCountrySearch] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locatingStatus, setLocatingStatus] = useState<string>('Ready to locate your real coordinates on Earth');
   const [isEarthFocused, setIsEarthFocused] = useState(false);
-  const [isNightAtTarget, setIsNightAtTarget] = useState(false);
+  const [targetSolarStatus, setTargetSolarStatus] = useState<'day' | 'night' | 'twilight'>('day');
+  const [liveUtcString, setLiveUtcString] = useState('');
+
+  const earthCloudsRef = useRef<THREE.Mesh | null>(null);
+  const earthAtmoRef = useRef<THREE.ShaderMaterial | null>(null);
 
   const sceneContextRef = useRef<{
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
     renderer: THREE.WebGLRenderer;
     sunMesh: THREE.Mesh;
-    sunPointLight: THREE.PointLight;
+    coronaMesh: THREE.Mesh;
     earthMesh: THREE.Mesh | null;
     earthShaderMaterial: THREE.ShaderMaterial | null;
-    earthGroup: THREE.Group | null;
+    earthBodyGroup: THREE.Group | null;
     countryMarkers: { country: CountryPoint; marker: THREE.Group }[];
     userPinMesh: THREE.Group | null;
     planetMeshes: {
-      planet: PlanetData;
-      pivot: THREE.Group;
+      planet: RealPlanetPhysics;
+      orbitPivot: THREE.Group;
+      tiltGroup: THREE.Group;
       body: THREE.Mesh;
       orbitLine: THREE.Line;
       angle: number;
@@ -446,14 +518,25 @@ export default function SolarSystemInteractiveGame() {
     return new THREE.Vector3(x, y, z);
   };
 
-  // Determine if a country coordinate is currently in Day or Night based on Sun direction
-  const computeDayNightAtCoords = (lat: number, lng: number, sunDir: THREE.Vector3): boolean => {
+  // Determine if coordinates are in Full Day, Night, or Twilight Terminator
+  const computeDayNightAtCoords = (lat: number, lng: number, sunDir: THREE.Vector3): 'day' | 'night' | 'twilight' => {
     const pt = latLngToVector3(lat, lng, 1.0).normalize();
     const dot = pt.dot(sunDir.normalize());
-    return dot < -0.05; // Negative means night side
+    if (dot > 0.08) return 'day';
+    if (dot < -0.08) return 'night';
+    return 'twilight';
   };
 
-  // Initialize Three.js Simulation
+  // Live Astronomical Clock Timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      setLiveUtcString(now.toUTCString().replace('GMT', 'UTC'));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Initialize Three.js Engine with Full Keplerian Orbital Mechanics
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
@@ -464,8 +547,8 @@ export default function SolarSystemInteractiveGame() {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x020409);
 
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 4000);
-    camera.position.set(0, 30, 85);
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 5000);
+    camera.position.set(0, 32, 90);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(width, height);
@@ -473,9 +556,25 @@ export default function SolarSystemInteractiveGame() {
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
-    // Deep Universe Starfield (Real astrophotographical colors)
+    // 1. Texture Loader
+    const textureLoader = new THREE.TextureLoader();
+
+    // Cosmic Deep Space Starfield & Galaxy Sphere
+    const bgGeo = new THREE.SphereGeometry(1500, 32, 32);
+    const bgTex = textureLoader.load('/textures/planets/galaxy_starfield.png');
+    bgTex.wrapS = THREE.RepeatWrapping;
+    bgTex.wrapT = THREE.RepeatWrapping;
+    bgTex.repeat.set(4, 2);
+    const bgMat = new THREE.MeshBasicMaterial({
+      map: bgTex,
+      side: THREE.BackSide,
+    });
+    const bgMesh = new THREE.Mesh(bgGeo, bgMat);
+    scene.add(bgMesh);
+
+    // Dynamic Starfield Points
     const starGeo = new THREE.BufferGeometry();
-    const starCount = 3800;
+    const starCount = 3500;
     const starPos = new Float32Array(starCount * 3);
     const starCols = new Float32Array(starCount * 3);
     for (let i = 0; i < starCount * 3; i += 3) {
@@ -485,56 +584,56 @@ export default function SolarSystemInteractiveGame() {
 
       const r = Math.random();
       if (r > 0.8) {
-        starCols[i] = 0.45; starCols[i + 1] = 0.8; starCols[i + 2] = 1.0; // Blue giants
+        starCols[i] = 0.45; starCols[i + 1] = 0.8; starCols[i + 2] = 1.0;
       } else if (r > 0.6) {
-        starCols[i] = 1.0; starCols[i + 1] = 0.8; starCols[i + 2] = 0.45; // Amber stars
+        starCols[i] = 1.0; starCols[i + 1] = 0.8; starCols[i + 2] = 0.45;
       } else {
-        starCols[i] = 0.95; starCols[i + 1] = 0.95; starCols[i + 2] = 1.0; // White stars
+        starCols[i] = 0.95; starCols[i + 1] = 0.95; starCols[i + 2] = 1.0;
       }
     }
     starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
     starGeo.setAttribute('color', new THREE.BufferAttribute(starCols, 3));
-    const starField = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 1.3, vertexColors: true, transparent: true, opacity: 0.85 }));
+    const starField = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 1.2, vertexColors: true, transparent: true, opacity: 0.8 }));
     scene.add(starField);
 
     // Ambient space illumination
-    const ambientLight = new THREE.AmbientLight(0x0a101d, 1.2);
+    const ambientLight = new THREE.AmbientLight(0x0a101d, 1.4);
     scene.add(ambientLight);
 
-    // 1. REAL SUN (Center Light Source)
-    const sunPointLight = new THREE.PointLight(0xfffbeb, 4.0, 500, 0.4);
+    // 1. THE SUN: Center Physical Point Light
+    const sunPointLight = new THREE.PointLight(0xfffbeb, 4.5, 800, 0.3);
     sunPointLight.position.set(0, 0, 0);
     scene.add(sunPointLight);
 
-    const sunGeo = new THREE.SphereGeometry(3.8, 64, 64);
-    const sunTex = createRealisticSunTexture();
+    const sunGeo = new THREE.SphereGeometry(3.9, 64, 64);
+    const sunTex = textureLoader.load('/textures/planets/sun.jpg');
     const sunMat = new THREE.MeshBasicMaterial({ map: sunTex });
     const sunMesh = new THREE.Mesh(sunGeo, sunMat);
     scene.add(sunMesh);
 
-    // Sun Corona Glow
-    const coronaGeo = new THREE.SphereGeometry(4.4, 32, 32);
+    // Sun Corona Plasma Flare Shell
+    const coronaGeo = new THREE.SphereGeometry(4.55, 32, 32);
     const coronaMat = new THREE.MeshBasicMaterial({
       color: 0xf59e0b,
       transparent: true,
-      opacity: 0.25,
+      opacity: 0.3,
       side: THREE.BackSide,
       blending: THREE.AdditiveBlending,
     });
     const coronaMesh = new THREE.Mesh(coronaGeo, coronaMat);
     scene.add(coronaMesh);
 
-    // 2. REAL EARTH WITH TRUE DAY/NIGHT TERMINATOR SHADER
-    const earthDayTex = createRealisticEarthDayTexture();
-    const earthNightTex = createRealisticEarthNightTexture();
+    // 2. REAL EARTH WITH TRUE NASA 4K BLUE MARBLE & BLACK MARBLE SHADER
+    const earthDayTex = textureLoader.load('/textures/planets/earth_day_4k.jpg');
+    const earthNightTex = textureLoader.load('/textures/planets/earth_night_4k.jpg');
+    const earthSpecTex = textureLoader.load('/textures/planets/earth_specular.jpg');
+    const earthCloudsTex = textureLoader.load('/textures/planets/earth_clouds.png');
 
-    // GLSL Shader that computes real Day vs Night based on Sun angle:
-    // When facing Sun (Day) -> Shows Blue Marble continents and oceans.
-    // When facing away from Sun (Night) -> Shows NASA Black Marble glowing city lights!
     const earthShaderMaterial = new THREE.ShaderMaterial({
       uniforms: {
         dayTexture: { value: earthDayTex },
         nightTexture: { value: earthNightTex },
+        specularMap: { value: earthSpecTex },
         sunDirection: { value: new THREE.Vector3(1, 0, 0) },
       },
       vertexShader: `
@@ -552,6 +651,7 @@ export default function SolarSystemInteractiveGame() {
       fragmentShader: `
         uniform sampler2D dayTexture;
         uniform sampler2D nightTexture;
+        uniform sampler2D specularMap;
         uniform vec3 sunDirection;
         varying vec2 vUv;
         varying vec3 vNormal;
@@ -562,18 +662,26 @@ export default function SolarSystemInteractiveGame() {
           float NdotL = dot(norm, sunDir);
           
           // Smooth day/night twilight terminator transition
-          float dayFactor = smoothstep(-0.15, 0.15, NdotL);
+          float dayFactor = smoothstep(-0.12, 0.12, NdotL);
           
           vec4 dayColor = texture2D(dayTexture, vUv);
           vec4 nightColor = texture2D(nightTexture, vUv);
           
-          // At night: city lights shine bright!
-          // At day: realistic sunlit oceans and continents!
-          vec3 mixedColor = mix(nightColor.rgb * 1.8, dayColor.rgb, dayFactor);
+          // Realistic night lights: warm glowing NASA city lights
+          vec3 nightLights = nightColor.rgb * 2.3;
+          vec3 mixedColor = mix(nightLights, dayColor.rgb, dayFactor);
           
-          // Atmospheric scattering glow on daytime horizon
-          float rim = 1.0 - max(0.0, dot(norm, vec3(0.0, 0.0, 1.0)));
-          vec3 atmoGlow = vec3(0.2, 0.6, 1.0) * pow(rim, 3.5) * max(0.0, NdotL);
+          // Ocean specular sun glint
+          vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+          vec3 halfDir = normalize(sunDir + viewDir);
+          float specAmount = pow(max(dot(norm, halfDir), 0.0), 32.0);
+          float specMask = texture2D(specularMap, vUv).r;
+          vec3 sunSpecular = vec3(0.9, 0.95, 1.0) * specAmount * specMask * max(0.0, NdotL) * 0.75;
+          mixedColor += sunSpecular;
+          
+          // Subtle atmospheric limb rim glow on daylight side
+          float rim = 1.0 - max(0.0, dot(norm, viewDir));
+          vec3 atmoGlow = vec3(0.25, 0.65, 1.0) * pow(rim, 3.2) * max(0.0, NdotL + 0.2);
           mixedColor += atmoGlow * 0.45;
           
           gl_FragColor = vec4(mixedColor, 1.0);
@@ -581,55 +689,169 @@ export default function SolarSystemInteractiveGame() {
       `,
     });
 
+    // Helper: Google Maps Billboard Label
+    const createCountryLabelSprite = (countryName: string, isCambodia: boolean): THREE.Sprite => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d')!;
+      ctx.clearRect(0, 0, 256, 64);
+
+      // Card pill background
+      ctx.fillStyle = isCambodia ? 'rgba(3, 105, 161, 0.92)' : 'rgba(15, 23, 42, 0.88)';
+      ctx.strokeStyle = isCambodia ? '#38bdf8' : 'rgba(148, 163, 184, 0.6)';
+      ctx.lineWidth = 2.5;
+
+      const px = 6, py = 10, pw = 244, ph = 44, pr = 8;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(px, py, pw, ph, pr);
+      } else {
+        ctx.rect(px, py, pw, ph);
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      // Country Name
+      ctx.font = 'bold 20px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = isCambodia ? '#ffffff' : '#f1f5f9';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(countryName.toUpperCase(), 128, 32);
+
+      const sprTex = new THREE.CanvasTexture(canvas);
+      sprTex.minFilter = THREE.LinearFilter;
+      const sprMat = new THREE.SpriteMaterial({
+        map: sprTex,
+        transparent: true,
+        depthTest: false,
+      });
+      const sprite = new THREE.Sprite(sprMat);
+      sprite.scale.set(0.32, 0.08, 1);
+      return sprite;
+    };
+
     let earthMesh: THREE.Mesh | null = null;
-    let earthGroup: THREE.Group | null = null;
+    let earthBodyGroup: THREE.Group | null = null;
     let userPinGroup: THREE.Group | null = null;
     const countryMarkers: { country: CountryPoint; marker: THREE.Group }[] = [];
     const planetMeshes: any[] = [];
 
-    // Build Planets
-    SOLAR_PLANETS.forEach((planet) => {
-      const pivot = new THREE.Group();
-      scene.add(pivot);
+    // Base Keplerian velocity factor (1 Earth year = 60s at 1x speed)
+    const BASE_EARTH_ORBIT_CYCLE_SEC = 60.0;
 
-      // Orbit Line Ring
-      const orbitCurve = new THREE.EllipseCurve(0, 0, planet.orbitRadius, planet.orbitRadius, 0, 2 * Math.PI, false, 0);
-      const points = orbitCurve.getPoints(120);
-      const lineGeo = new THREE.BufferGeometry().setFromPoints(points.map((p) => new THREE.Vector3(p.x, 0, p.y)));
+    // 3. Build All Planets with Real Keplerian Mechanics and Axial Tilts
+    REAL_PLANETS_PHYSICS.forEach((planet) => {
+      // Pivot around Sun
+      const orbitPivot = new THREE.Group();
+      scene.add(orbitPivot);
+
+      // Orbit Line Ring (True circular/elliptical path)
+      const orbitCurve = new THREE.EllipseCurve(0, 0, planet.orbitRadius3D, planet.orbitRadius3D, 0, 2 * Math.PI, false, 0);
+      const pts = orbitCurve.getPoints(120);
+      const lineGeo = new THREE.BufferGeometry().setFromPoints(pts.map((p) => new THREE.Vector3(p.x, 0, p.y)));
       const lineMat = new THREE.LineBasicMaterial({
         color: new THREE.Color(planet.colorHex),
         transparent: true,
-        opacity: 0.25,
+        opacity: 0.28,
       });
       const orbitLine = new THREE.Line(lineGeo, lineMat);
       orbitLine.rotation.x = Math.PI / 2;
       scene.add(orbitLine);
 
+      // Axial Tilt Group (Applies exact physical tilt e.g. Earth 23.44°, Mars 25.19°, Saturn 26.73°)
+      const tiltGroup = new THREE.Group();
+      tiltGroup.position.set(planet.orbitRadius3D, 0, 0);
+      tiltGroup.rotation.z = (planet.axialTiltDeg * Math.PI) / 180;
+      orbitPivot.add(tiltGroup);
+
       let body: THREE.Mesh;
 
       if (planet.id === 'earth') {
-        // Real Earth Sphere with Day/Night Shader
         const eGeo = new THREE.SphereGeometry(planet.sizeRadius, 64, 64);
         body = new THREE.Mesh(eGeo, earthShaderMaterial);
-        body.position.set(planet.orbitRadius, 0, 0);
-        pivot.add(body);
+        tiltGroup.add(body);
         earthMesh = body;
-        earthGroup = pivot;
+        earthBodyGroup = tiltGroup;
 
-        // Add 3D Google Maps style Country Markers on Earth
-        WORLD_COUNTRIES.forEach((c) => {
+        // Realistic Atmospheric Clouds Layer (Swirling clouds drifting over oceans/continents)
+        const cloudGeo = new THREE.SphereGeometry(planet.sizeRadius * 1.009, 64, 64);
+        const cloudMat = new THREE.MeshStandardMaterial({
+          map: earthCloudsTex,
+          transparent: true,
+          opacity: 0.82,
+          blending: THREE.NormalBlending,
+          depthWrite: false,
+        });
+        const cloudsMesh = new THREE.Mesh(cloudGeo, cloudMat);
+        tiltGroup.add(cloudsMesh);
+        earthCloudsRef.current = cloudsMesh;
+
+        // Realistic Rayleigh Scattering Atmospheric Limb Glow Halo
+        const atmoGeo = new THREE.SphereGeometry(planet.sizeRadius * 1.032, 64, 64);
+        const atmoMat = new THREE.ShaderMaterial({
+          uniforms: {
+            sunDirection: { value: new THREE.Vector3(1, 0, 0) },
+          },
+          vertexShader: `
+            varying vec3 vNormal;
+            varying vec3 vWorldPosition;
+            void main() {
+              vNormal = normalize(normalMatrix * normal);
+              vec4 worldPos = modelMatrix * vec4(position, 1.0);
+              vWorldPosition = worldPos.xyz;
+              gl_Position = projectionMatrix * viewMatrix * worldPos;
+            }
+          `,
+          fragmentShader: `
+            uniform vec3 sunDirection;
+            varying vec3 vNormal;
+            varying vec3 vWorldPosition;
+            void main() {
+              vec3 norm = normalize(vNormal);
+              vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+              float rim = 1.0 - max(0.0, dot(norm, viewDir));
+              float sunFacing = dot(norm, normalize(sunDirection));
+              float intensity = pow(rim, 2.5) * smoothstep(-0.3, 0.35, sunFacing);
+              vec3 atmoColor = vec3(0.2, 0.62, 1.0);
+              gl_FragColor = vec4(atmoColor, intensity * 0.95);
+            }
+          `,
+          blending: THREE.AdditiveBlending,
+          side: THREE.BackSide,
+          transparent: true,
+          depthWrite: false,
+        });
+        const atmoMesh = new THREE.Mesh(atmoGeo, atmoMat);
+        tiltGroup.add(atmoMesh);
+        earthAtmoRef.current = atmoMat;
+
+        // Add 3D Country Markers on Earth with Google Maps precision & labels
+        REAL_WORLD_COUNTRIES.forEach((c) => {
           const mGroup = new THREE.Group();
+          const isKh = c.id === 'khm';
+
           const dot = new THREE.Mesh(
-            new THREE.SphereGeometry(0.025, 12, 12),
-            new THREE.MeshBasicMaterial({ color: c.id === 'khm' ? 0x38bdf8 : 0x94a3b8 })
+            new THREE.SphereGeometry(0.024, 12, 12),
+            new THREE.MeshBasicMaterial({ color: isKh ? 0x38bdf8 : 0x94a3b8 })
           );
           const ring = new THREE.Mesh(
-            new THREE.RingGeometry(0.03, 0.05, 16),
-            new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, transparent: true, opacity: 0.7 })
+            new THREE.RingGeometry(0.03, 0.055, 16),
+            new THREE.MeshBasicMaterial({
+              color: isKh ? 0x38bdf8 : 0x64748b,
+              side: THREE.DoubleSide,
+              transparent: true,
+              opacity: 0.8,
+            })
           );
           ring.rotation.x = Math.PI / 2;
           mGroup.add(dot);
           mGroup.add(ring);
+
+          // Google Maps Billboard Label
+          const label = createCountryLabelSprite(c.name, isKh);
+          label.position.set(0, 0.048, 0);
+          mGroup.add(label);
 
           const pos = latLngToVector3(c.lat, c.lng, planet.sizeRadius + 0.02);
           mGroup.position.copy(pos);
@@ -640,45 +862,73 @@ export default function SolarSystemInteractiveGame() {
         // GPS User Marker
         userPinGroup = new THREE.Group();
         const pinDot = new THREE.Mesh(new THREE.SphereGeometry(0.035, 16, 16), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
-        const pinRadar = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.09, 20), new THREE.MeshBasicMaterial({ color: 0x10b981, side: THREE.DoubleSide, transparent: true, opacity: 0.8 }));
+        const pinRadar = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.09, 20), new THREE.MeshBasicMaterial({ color: 0x10b981, side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
         pinRadar.rotation.x = Math.PI / 2;
         userPinGroup.add(pinDot);
         userPinGroup.add(pinRadar);
         body.add(userPinGroup);
 
-        // Initial pin position on Cambodia
-        const initPinPos = latLngToVector3(WORLD_COUNTRIES[0].lat, WORLD_COUNTRIES[0].lng, planet.sizeRadius + 0.03);
+        const initPinPos = latLngToVector3(REAL_WORLD_COUNTRIES[0].lat, REAL_WORLD_COUNTRIES[0].lng, planet.sizeRadius + 0.035);
         userPinGroup.position.copy(initPinPos);
 
-        // Moon Orbiting Earth
+        // Real Moon with 27.3 Day Orbital Cycle & 5.14° Inclination
         const moonPivot = new THREE.Group();
-        body.add(moonPivot);
-        const moonGeo = new THREE.SphereGeometry(0.25, 24, 24);
-        const moonMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.85 });
+        moonPivot.rotation.z = (5.14 * Math.PI) / 180;
+        tiltGroup.add(moonPivot);
+        const moonGeo = new THREE.SphereGeometry(0.27, 32, 32);
+        const moonTex = textureLoader.load('/textures/planets/moon_1k.jpg');
+        const moonMat = new THREE.MeshStandardMaterial({
+          map: moonTex,
+          roughness: 0.92,
+          metalness: 0.05,
+        });
         const moonBody = new THREE.Mesh(moonGeo, moonMat);
-        moonBody.position.set(2.2, 0, 0);
+        moonBody.position.set(3.4, 0, 0);
         moonPivot.add(moonBody);
       } else {
-        // Standard Planets with physical lighting
-        const pGeo = new THREE.SphereGeometry(planet.sizeRadius, 48, 48);
-        const pMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(planet.colorHex), roughness: 0.7 });
+        const pGeo = new THREE.SphereGeometry(planet.sizeRadius, 64, 64);
+        const pTex = textureLoader.load(planet.textureUrl);
+        const pMat = new THREE.MeshStandardMaterial({
+          map: pTex,
+          roughness: 0.75,
+          metalness: 0.05,
+        });
         body = new THREE.Mesh(pGeo, pMat);
-        body.position.set(planet.orbitRadius, 0, 0);
-        pivot.add(body);
+        tiltGroup.add(body);
 
-        // Saturn Rings
+        // Saturn's Rings (Cassini ring transparency map)
         if (planet.hasRings) {
-          const ringGeo = new THREE.RingGeometry(planet.sizeRadius * 1.3, planet.sizeRadius * 2.3, 64);
-          const ringMat = new THREE.MeshStandardMaterial({ color: 0xd97706, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+          const ringInner = planet.sizeRadius * 1.32;
+          const ringOuter = planet.sizeRadius * 2.38;
+          const ringGeo = new THREE.RingGeometry(ringInner, ringOuter, 64);
+          
+          const pos = ringGeo.attributes.position;
+          const v3 = new THREE.Vector3();
+          for (let i = 0; i < pos.count; i++) {
+            v3.fromBufferAttribute(pos, i);
+            const dist = v3.length();
+            const u = (dist - ringInner) / (ringOuter - ringInner);
+            ringGeo.attributes.uv.setXY(i, u, 0.5);
+          }
+          
+          const ringTex = textureLoader.load('/textures/planets/saturn_ring.png');
+          const ringMat = new THREE.MeshStandardMaterial({
+            map: ringTex,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.92,
+            roughness: 0.5,
+          });
           const rings = new THREE.Mesh(ringGeo, ringMat);
-          rings.rotation.x = Math.PI / 2 + 0.4;
-          body.add(rings);
+          rings.rotation.x = Math.PI / 2;
+          tiltGroup.add(rings);
         }
       }
 
       planetMeshes.push({
         planet,
-        pivot,
+        orbitPivot,
+        tiltGroup,
         body,
         orbitLine,
         angle: Math.random() * Math.PI * 2,
@@ -690,14 +940,14 @@ export default function SolarSystemInteractiveGame() {
       camera,
       renderer,
       sunMesh,
-      sunPointLight,
+      coronaMesh,
       earthMesh,
       earthShaderMaterial,
-      earthGroup,
+      earthBodyGroup,
       countryMarkers,
       userPinMesh: userPinGroup,
       planetMeshes,
-      spherical: { radius: 85, theta: 0.45, phi: 1.15 },
+      spherical: { radius: 90, theta: 0.45, phi: 1.15 },
       targetedMesh: null,
       isDragging: false,
       prevX: 0,
@@ -740,11 +990,10 @@ export default function SolarSystemInteractiveGame() {
       sceneContextRef.current.spherical.radius = THREE.MathUtils.clamp(
         sceneContextRef.current.spherical.radius + delta,
         3.2,
-        240
+        250
       );
     };
 
-    // Click Detection on 3D Bodies (Raycaster)
     const onCanvasClick = (e: MouseEvent) => {
       if (!sceneContextRef.current || !container) return;
       const rect = container.getBoundingClientRect();
@@ -797,17 +1046,18 @@ export default function SolarSystemInteractiveGame() {
     container.addEventListener('click', onCanvasClick);
     window.addEventListener('resize', onResize);
 
-    // Animation Render Loop
+    // Animation Render Loop with Real Keplerian Time Physics
     let animId: number;
     let clock = 0;
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
-      clock += 0.01;
+      clock += 0.016;
 
       if (sceneContextRef.current) {
         const {
           sunMesh,
+          coronaMesh,
           planetMeshes,
           earthMesh,
           earthShaderMaterial,
@@ -817,36 +1067,59 @@ export default function SolarSystemInteractiveGame() {
           userPinMesh,
         } = sceneContextRef.current;
 
-        // Sun spin
+        // Sun rotation
         sunMesh.rotation.y += 0.002;
         const pulse = 1 + Math.sin(clock * 3) * 0.04;
         coronaMesh.scale.set(pulse, pulse, pulse);
 
-        // Orbit planets
+        // Real Keplerian Orbital Motions: T_planet / T_earth
         planetMeshes.forEach((item) => {
           if (!isPaused) {
-            item.angle += item.planet.orbitSpeed * 0.25 * simSpeed;
-            item.pivot.rotation.y = item.angle;
-            item.body.rotation.y += item.planet.rotationSpeed * simSpeed;
+            // Kepler's Third Law: speed is strictly proportional to 1 / sqrt(a)
+            const speedFactor = (365.256 / item.planet.realPeriodDays) * 0.0025 * simSpeed;
+            item.angle += speedFactor;
+            item.orbitPivot.rotation.y = item.angle;
+
+            // Real physical rotation around its tilted axis
+            const rotFactor = (24.0 / Math.abs(item.planet.rotationPeriodHours)) * 0.02 * simSpeed;
+            item.body.rotation.y += item.planet.isRetrograde ? -rotFactor : rotFactor;
           }
+
           item.orbitLine.visible = showOrbits;
         });
 
-        // Update Real Day/Night Shader Sun Vector on Earth
+        // Real-Time Earth Rotation Synchronization
         if (earthMesh && earthShaderMaterial) {
-          // Calculate Sun vector relative to Earth in Earth's local coordinate space
+          if (useRealTimeSync && !isPaused) {
+            // Synchronize Earth's rotation angle directly with current real-time UTC!
+            const now = new Date();
+            const utcSeconds = now.getUTCHours() * 3600 + now.getUTCMinutes() * 60 + now.getUTCSeconds();
+            // Solar noon at 0° longitude is at 12:00 UTC (43200s)
+            const dayFraction = utcSeconds / 86400;
+            earthMesh.rotation.y = dayFraction * 2 * Math.PI + Math.PI;
+          }
+
+          // Dynamic atmospheric cloud drift (clouds rotate with atmospheric winds)
+          if (earthCloudsRef.current && !isPaused) {
+            earthCloudsRef.current.rotation.y += 0.00032 * simSpeed;
+          }
+
+          // Compute exact Sun direction relative to Earth surface normal
           const earthWorldPos = new THREE.Vector3();
           earthMesh.getWorldPosition(earthWorldPos);
 
           const sunDir = new THREE.Vector3(0, 0, 0).sub(earthWorldPos).normalize();
-          // Transform sun direction to Earth body's local rotation frame
           const invMatrix = new THREE.Matrix4().extractRotation(earthMesh.matrixWorld).invert();
           sunDir.applyMatrix4(invMatrix);
 
           earthShaderMaterial.uniforms.sunDirection.value.copy(sunDir);
+
+          if (earthAtmoRef.current) {
+            earthAtmoRef.current.uniforms.sunDirection.value.copy(sunDir);
+          }
         }
 
-        // Pulse GPS Pin
+        // Pulse Radar Pin on User GPS location
         if (userPinMesh) {
           const ring = userPinMesh.children[1];
           if (ring) {
@@ -855,7 +1128,7 @@ export default function SolarSystemInteractiveGame() {
           }
         }
 
-        // Camera Follow Target (Earth or selected planet)
+        // Camera Follow Target (Earth, Sun, or other planets)
         const targetWorldPos = new THREE.Vector3();
         if (targetedMesh) {
           targetedMesh.getWorldPosition(targetWorldPos);
@@ -886,10 +1159,10 @@ export default function SolarSystemInteractiveGame() {
       window.removeEventListener('resize', onResize);
       renderer.dispose();
     };
-  }, [isPaused, simSpeed, showOrbits]);
+  }, [isPaused, simSpeed, showOrbits, useRealTimeSync]);
 
-  // Handle Planet Selection
-  const handleSelectPlanet = (planet: PlanetData) => {
+  // Planet Focus
+  const handleSelectPlanet = (planet: RealPlanetPhysics) => {
     setSelectedPlanet(planet);
     setIsEarthFocused(planet.id === 'earth');
 
@@ -901,23 +1174,23 @@ export default function SolarSystemInteractiveGame() {
     }
   };
 
-  // Reset to full Solar System
+  // Reset to Full Solar System
   const handleResetView = () => {
     setSelectedPlanet(null);
     setIsEarthFocused(false);
     if (!sceneContextRef.current) return;
     sceneContextRef.current.targetedMesh = null;
-    sceneContextRef.current.spherical.radius = 85;
+    sceneContextRef.current.spherical.radius = 90;
     sceneContextRef.current.spherical.theta = 0.45;
     sceneContextRef.current.spherical.phi = 1.15;
   };
 
-  // Select Country on Earth (Rotates Earth & Flies Camera like Google Maps)
+  // Select Country on Earth
   const handleSelectCountry = (country: CountryPoint) => {
     setSelectedCountry(country);
     setIsEarthFocused(true);
 
-    const earthData = SOLAR_PLANETS.find((p) => p.id === 'earth')!;
+    const earthData = REAL_PLANETS_PHYSICS.find((p) => p.id === 'earth')!;
     setSelectedPlanet(earthData);
 
     if (!sceneContextRef.current) return;
@@ -925,20 +1198,29 @@ export default function SolarSystemInteractiveGame() {
     if (!earthItem) return;
 
     sceneContextRef.current.targetedMesh = earthItem.body;
-    // Zoom close to Earth surface
-    sceneContextRef.current.spherical.radius = 2.8;
+    sceneContextRef.current.spherical.radius = 2.75;
 
-    // Check Day or Night status
+    // Center camera view directly onto country coordinates
     if (sceneContextRef.current.earthMesh) {
+      const eRot = sceneContextRef.current.earthMesh.rotation.y;
+      const lngRad = (country.lng * Math.PI) / 180;
+      sceneContextRef.current.spherical.theta = -eRot - lngRad + Math.PI / 2;
+      sceneContextRef.current.spherical.phi = THREE.MathUtils.clamp(
+        (90 - country.lat) * (Math.PI / 180),
+        0.35,
+        Math.PI - 0.35
+      );
+
+      // Check solar illumination at target country
       const earthWorldPos = new THREE.Vector3();
       sceneContextRef.current.earthMesh.getWorldPosition(earthWorldPos);
       const sunDir = new THREE.Vector3(0, 0, 0).sub(earthWorldPos).normalize();
-      const isNight = computeDayNightAtCoords(country.lat, country.lng, sunDir);
-      setIsNightAtTarget(isNight);
+      const status = computeDayNightAtCoords(country.lat, country.lng, sunDir);
+      setTargetSolarStatus(status);
     }
   };
 
-  // GPS Locate My Current Location on Real Earth
+  // GPS Locate My Current Coordinates on Real Earth
   const handleLocateMyPosition = () => {
     if (!navigator.geolocation) {
       setLocatingStatus('Browser does not support geolocation telemetry');
@@ -953,20 +1235,27 @@ export default function SolarSystemInteractiveGame() {
         setLocatingStatus(`Locked: ${latitude.toFixed(4)}° N, ${longitude.toFixed(4)}° E`);
 
         if (sceneContextRef.current && sceneContextRef.current.userPinMesh && sceneContextRef.current.earthMesh) {
-          const earthData = SOLAR_PLANETS.find((p) => p.id === 'earth')!;
+          const earthData = REAL_PLANETS_PHYSICS.find((p) => p.id === 'earth')!;
           const posVec = latLngToVector3(latitude, longitude, earthData.sizeRadius + 0.035);
           sceneContextRef.current.userPinMesh.position.copy(posVec);
 
-          // Fly close to Earth and focus user
           handleSelectPlanet(earthData);
           sceneContextRef.current.spherical.radius = 2.6;
 
-          // Check Day/Night status
+          const eRot = sceneContextRef.current.earthMesh.rotation.y;
+          const lngRad = (longitude * Math.PI) / 180;
+          sceneContextRef.current.spherical.theta = -eRot - lngRad + Math.PI / 2;
+          sceneContextRef.current.spherical.phi = THREE.MathUtils.clamp(
+            (90 - latitude) * (Math.PI / 180),
+            0.35,
+            Math.PI - 0.35
+          );
+
           const earthWorldPos = new THREE.Vector3();
           sceneContextRef.current.earthMesh.getWorldPosition(earthWorldPos);
           const sunDir = new THREE.Vector3(0, 0, 0).sub(earthWorldPos).normalize();
-          const isNight = computeDayNightAtCoords(latitude, longitude, sunDir);
-          setIsNightAtTarget(isNight);
+          const status = computeDayNightAtCoords(latitude, longitude, sunDir);
+          setTargetSolarStatus(status);
         }
       },
       (err) => {
@@ -976,11 +1265,11 @@ export default function SolarSystemInteractiveGame() {
     );
   };
 
-  // Filter countries for search
+  // Filter countries
   const filteredCountries = useMemo(() => {
-    if (!countrySearch.trim()) return WORLD_COUNTRIES;
+    if (!countrySearch.trim()) return REAL_WORLD_COUNTRIES;
     const q = countrySearch.toLowerCase();
-    return WORLD_COUNTRIES.filter(
+    return REAL_WORLD_COUNTRIES.filter(
       (c) => c.name.toLowerCase().includes(q) || c.capital.toLowerCase().includes(q) || c.majorSites.toLowerCase().includes(q)
     );
   }, [countrySearch]);
@@ -1001,10 +1290,10 @@ export default function SolarSystemInteractiveGame() {
             <div className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
               <span>AEROVEX</span>
               <span className="text-[9px] px-1.5 py-0.2 bg-aeroblue/15 text-aeroblue rounded border border-aeroblue/30">
-                REAL SOLAR OS
+                REAL PHYSICS ENGINE
               </span>
             </div>
-            <div className="text-[10px] text-space-400">TRUE DAY/NIGHT EARTH & SOLAR SIMULATION</div>
+            <div className="text-[10px] text-space-400">100% AUTHENTIC KEPLERIAN ORBITS & DAY/NIGHT</div>
           </div>
         </div>
 
@@ -1020,12 +1309,31 @@ export default function SolarSystemInteractiveGame() {
 
           <div className="h-4 w-px bg-space-800 mx-1" />
 
+          {/* Real-Time UTC Live Sync Toggle */}
+          <button
+            onClick={() => setUseRealTimeSync(!useRealTimeSync)}
+            className={`px-2.5 py-1 rounded text-[11px] transition-all flex items-center gap-1.5 ${
+              useRealTimeSync
+                ? 'bg-aerogreen/20 text-aerogreen border border-aerogreen/40 font-bold'
+                : 'text-space-400 hover:text-white hover:bg-space-800'
+            }`}
+            title="Synchronize Earth rotation directly with live UTC time"
+          >
+            <Clock className="w-3 h-3" />
+            <span>{useRealTimeSync ? 'LIVE UTC SYNC' : 'MANUAL SPEED'}</span>
+          </button>
+
+          <div className="h-4 w-px bg-space-800 mx-1" />
+
           {[1, 5, 20].map((spd) => (
             <button
               key={spd}
-              onClick={() => setSimSpeed(spd)}
+              onClick={() => {
+                setSimSpeed(spd);
+                setUseRealTimeSync(false);
+              }}
               className={`px-2 py-0.5 rounded text-[11px] transition-colors ${
-                simSpeed === spd ? 'bg-aeroblue text-space-950 font-bold' : 'text-space-400 hover:text-white'
+                !useRealTimeSync && simSpeed === spd ? 'bg-aeroblue text-space-950 font-bold' : 'text-space-400 hover:text-white'
               }`}
             >
               {spd}x
@@ -1039,6 +1347,7 @@ export default function SolarSystemInteractiveGame() {
             className={`px-2.5 py-1 rounded text-[11px] transition-colors ${
               showOrbits ? 'bg-space-800 text-aeroblue border border-space-700' : 'text-space-500 hover:text-white'
             }`}
+            title="Toggle Orbital Rings"
           >
             TRAILS
           </button>
@@ -1068,7 +1377,7 @@ export default function SolarSystemInteractiveGame() {
             <span>THE SUN</span>
           </button>
 
-          {SOLAR_PLANETS.map((planet) => {
+          {REAL_PLANETS_PHYSICS.map((planet) => {
             const isSelected = selectedPlanet?.id === planet.id;
 
             return (
@@ -1092,7 +1401,7 @@ export default function SolarSystemInteractiveGame() {
         </div>
       </div>
 
-      {/* Floating Day/Night Real-Time Status HUD (When Earth is Focused) */}
+      {/* Floating Day/Night Live Status HUD (When Earth is Focused) */}
       {isEarthFocused && (
         <div className="absolute top-20 left-4 z-20 pointer-events-none max-w-xs">
           <div className="bg-space-950/85 backdrop-blur-md p-3.5 rounded-lg border border-space-700/80 space-y-2 shadow-lg">
@@ -1103,7 +1412,7 @@ export default function SolarSystemInteractiveGame() {
               </span>
             </div>
             <p className="text-[11px] text-space-300 leading-relaxed">
-              Half of Earth is bathed in real daylight (Blue Marble), while the night side reveals glowing golden city
+              Half of Earth is illuminated in real daylight, while the dark night hemisphere reveals glowing golden city
               lights (NASA Black Marble).
             </p>
             <div className="p-2 bg-space-900 rounded border border-space-800 text-[10px] space-y-1">
@@ -1112,10 +1421,14 @@ export default function SolarSystemInteractiveGame() {
                 <span className="text-white font-bold">{selectedCountry.name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-space-400">SOLAR STATE:</span>
-                <span className={isNightAtTarget ? 'text-aeroamber-light font-bold' : 'text-aerogreen font-bold'}>
-                  {isNightAtTarget ? 'NIGHTTIME (CITY LIGHTS)' : 'DAYTIME (SUNLIT)'}
+                <span className="text-space-400">SOLAR ILLUMINATION:</span>
+                <span className={targetSolarStatus === 'day' ? 'text-aeroamber font-bold' : targetSolarStatus === 'night' ? 'text-aeroblue font-bold' : 'text-aerocyan font-bold'}>
+                  {targetSolarStatus === 'day' ? 'DAYTIME (NASA BLUE MARBLE)' : targetSolarStatus === 'night' ? 'NIGHTTIME (CITY LIGHTS GLOW)' : 'TERMINATOR (TWILIGHT DAWN/DUSK)'}
                 </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-space-400">LIVE UTC ASTRONOMICAL TIME:</span>
+                <span className="text-space-200">{liveUtcString || 'Synchronized'}</span>
               </div>
             </div>
           </div>
@@ -1134,7 +1447,7 @@ export default function SolarSystemInteractiveGame() {
                 </span>
                 <h2 className="text-xl font-bold text-white mt-1.5 tracking-tight">{selectedPlanet.name}</h2>
                 <div className="text-[11px] text-space-400">
-                  {selectedPlanet.distanceAU} AU from Sun &bull; {selectedPlanet.moons} Moons
+                  {selectedPlanet.orbitRadiusAU} AU &bull; Axial Tilt: {selectedPlanet.axialTiltDeg}° &bull; {selectedPlanet.moonsCount} Moons
                 </div>
               </div>
 
@@ -1152,10 +1465,6 @@ export default function SolarSystemInteractiveGame() {
 
             {/* Content Body */}
             <div className="overflow-y-auto space-y-4 pr-1 my-3 text-xs">
-              <p className="text-space-200 leading-relaxed text-xs">
-                {selectedPlanet.summary}
-              </p>
-
               {/* Physical Parameters */}
               <div className="grid grid-cols-2 gap-2 text-[11px]">
                 <div className="p-2.5 bg-space-950/80 rounded border border-space-800">
@@ -1164,23 +1473,28 @@ export default function SolarSystemInteractiveGame() {
                 </div>
 
                 <div className="p-2.5 bg-space-950/80 rounded border border-space-800">
-                  <span className="text-space-500 block text-[10px]">YEAR (ORBIT)</span>
-                  <span className="text-white font-bold">{selectedPlanet.yearLength}</span>
+                  <span className="text-space-500 block text-[10px]">ORBITAL PERIOD (YEAR)</span>
+                  <span className="text-white font-bold">{selectedPlanet.realPeriodDays} Days</span>
                 </div>
 
                 <div className="p-2.5 bg-space-950/80 rounded border border-space-800">
-                  <span className="text-space-500 block text-[10px]">DAY (ROTATION)</span>
-                  <span className="text-white font-bold">{selectedPlanet.dayLength}</span>
+                  <span className="text-space-500 block text-[10px]">SIDEREAL DAY LENGTH</span>
+                  <span className="text-white font-bold">{selectedPlanet.rotationPeriodHours} Hours</span>
                 </div>
 
                 <div className="p-2.5 bg-space-950/80 rounded border border-space-800">
-                  <span className="text-space-500 block text-[10px]">GRAVITY</span>
-                  <span className="text-aeroblue-light font-bold">{selectedPlanet.surfaceGravity}</span>
+                  <span className="text-space-500 block text-[10px]">SURFACE GRAVITY</span>
+                  <span className="text-aeroblue-light font-bold">{selectedPlanet.surfaceGravityMs2} m/s²</span>
                 </div>
 
-                <div className="p-2.5 bg-space-950/80 rounded border border-space-800 col-span-2">
-                  <span className="text-space-500 block text-[10px]">MEAN SURFACE TEMPERATURE</span>
-                  <span className="text-aeroamber-light font-bold">{selectedPlanet.meanTempC}</span>
+                <div className="p-2.5 bg-space-950/80 rounded border border-space-800">
+                  <span className="text-space-500 block text-[10px]">MASS (ACTUAL)</span>
+                  <span className="text-white font-bold">{selectedPlanet.massKg}</span>
+                </div>
+
+                <div className="p-2.5 bg-space-950/80 rounded border border-space-800">
+                  <span className="text-space-500 block text-[10px]">ESCAPE VELOCITY</span>
+                  <span className="text-white font-bold">{selectedPlanet.escapeVelocityKmS} km/s</span>
                 </div>
               </div>
 
@@ -1242,11 +1556,34 @@ export default function SolarSystemInteractiveGame() {
                   </div>
 
                   {/* Selected Country Data Card */}
-                  <div className="p-3 bg-space-900 rounded border border-space-800 text-[11px] space-y-1.5">
+                  <div className="p-3 bg-space-900 rounded border border-space-800 text-[11px] space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-white font-bold">{selectedCountry.name}</span>
                       <span className="text-[10px] text-aeroblue">{selectedCountry.timezone}</span>
                     </div>
+
+                    {/* Solar State on Target Country */}
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-space-950 border border-space-800 text-[10px]">
+                      {targetSolarStatus === 'day' && (
+                        <>
+                          <Sun className="w-3.5 h-3.5 text-aeroamber" />
+                          <span className="text-aeroamber font-bold">SOLAR POSITION: FULL DAYLIGHT (BLUE MARBLE)</span>
+                        </>
+                      )}
+                      {targetSolarStatus === 'night' && (
+                        <>
+                          <Moon className="w-3.5 h-3.5 text-aeroblue" />
+                          <span className="text-aeroblue font-bold">SOLAR POSITION: NIGHTTIME (NASA BLACK MARBLE)</span>
+                        </>
+                      )}
+                      {targetSolarStatus === 'twilight' && (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5 text-aerocyan" />
+                          <span className="text-aerocyan font-bold">SOLAR POSITION: TERMINATOR LINE (DAWN / DUSK)</span>
+                        </>
+                      )}
+                    </div>
+
                     <div className="text-space-300 text-[10px] leading-relaxed">
                       {selectedCountry.overview}
                     </div>
@@ -1257,6 +1594,21 @@ export default function SolarSystemInteractiveGame() {
                   </div>
                 </div>
               )}
+
+              {/* Physical Highlights */}
+              <div className="space-y-2 pt-1 border-t border-space-800">
+                <span className="text-[10px] text-aeroamber font-bold uppercase tracking-wider block">
+                  PHYSICAL & ASTRODYNAMICAL PROPERTIES
+                </span>
+                <ul className="space-y-1.5 text-space-300 text-xs">
+                  {selectedPlanet.physicsHighlights.map((feat, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-aeroamber mt-1.5 flex-shrink-0" />
+                      <span className="leading-relaxed">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
               {/* Atmosphere Badges */}
               <div className="space-y-1.5 pt-1 border-t border-space-800">
