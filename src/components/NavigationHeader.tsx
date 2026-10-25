@@ -13,9 +13,10 @@ import {
   Cpu,
   BarChart3,
   SlidersHorizontal,
+  Globe,
 } from 'lucide-react';
 
-export type ActiveTab = 'architect' | 'catalog' | 'marketplace' | 'rideshare' | 'ground' | 'comparator' | 'supplier';
+export type ActiveTab = 'explorer' | 'architect' | 'catalog' | 'marketplace' | 'rideshare' | 'ground' | 'comparator' | 'supplier';
 
 interface NavigationHeaderProps {
   activeTab: ActiveTab;
@@ -99,6 +100,18 @@ export default function NavigationHeader({
 
         {/* Navigation Tabs */}
         <nav className="flex items-center gap-1 overflow-x-auto py-1 scrollbar-none">
+          <button
+            onClick={() => onTabChange('explorer')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+              activeTab === 'explorer'
+                ? 'bg-space-800 text-aeroblue-light border border-space-700 shadow-sm shadow-aeroblue/10'
+                : 'text-space-300 hover:text-white hover:bg-space-900'
+            }`}
+          >
+            <Globe className="w-3.5 h-3.5 text-aeroblue" />
+            <span>World & Orbit Explorer</span>
+          </button>
+
           <button
             onClick={() => onTabChange('architect')}
             className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium transition-colors ${

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import NavigationHeader, { ActiveTab } from '../components/NavigationHeader';
+import OrbitalExplorer3D from '../components/OrbitalExplorer3D';
 import MissionArchitect from '../components/MissionArchitect';
 import ComponentCatalog from '../components/ComponentCatalog';
 import MarketplaceProcurement from '../components/MarketplaceProcurement';
@@ -14,7 +15,7 @@ import { SPACE_COMPONENTS } from '../data/spaceComponents';
 import { ShieldCheck, Satellite, Terminal, ExternalLink } from 'lucide-react';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('architect');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('explorer');
   const [itarFreeOnly, setItarFreeOnly] = useState<boolean>(false);
   const [selectedCatalogCategory, setSelectedCatalogCategory] = useState<SubsystemCategory | null>(null);
 
@@ -106,6 +107,8 @@ export default function Home() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        {activeTab === 'explorer' && <OrbitalExplorer3D />}
+
         {activeTab === 'architect' && (
           <MissionArchitect
             currentBOM={currentBOM}
