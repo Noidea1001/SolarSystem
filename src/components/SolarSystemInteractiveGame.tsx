@@ -549,7 +549,7 @@ export default function SolarSystemInteractiveGame() {
   const [selectedPlanet, setSelectedPlanet] = useState<RealPlanetPhysics | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [simSpeed, setSimSpeed] = useState<number>(1);
-  const [showOrbits, setShowOrbits] = useState(true);
+  const [showOrbits, setShowOrbits] = useState(false);
   const [useRealTimeSync, setUseRealTimeSync] = useState(true); // Live Real-Time Earth Day/Night Sync
   const [selectedCountry, setSelectedCountry] = useState<CountryPoint>(REAL_WORLD_COUNTRIES[0]); // Cambodia default
   const [countrySearch, setCountrySearch] = useState('');
@@ -558,7 +558,7 @@ export default function SolarSystemInteractiveGame() {
   const [isEarthFocused, setIsEarthFocused] = useState(false);
   const [targetSolarStatus, setTargetSolarStatus] = useState<'day' | 'night' | 'twilight'>('day');
   const [liveUtcString, setLiveUtcString] = useState('');
-  const [viewMode, setViewMode] = useState<'space' | 'maps'>('space');
+  const [viewMode, setViewMode] = useState<'space' | 'maps'>('maps');
   const [mapsTarget, setMapsTarget] = useState<{ lat: number; lng: number; zoom: number }>({
     lat: 12.5657,
     lng: 104.991,
@@ -1012,7 +1012,7 @@ export default function SolarSystemInteractiveGame() {
       countryMarkers,
       userPinMesh: userPinGroup,
       planetMeshes,
-      spherical: { radius: 90, theta: 0.45, phi: 1.15 },
+      spherical: { radius: 75, theta: 0.52, phi: 1.38 },
       targetedMesh: null,
       isDragging: false,
       prevX: 0,
@@ -1058,14 +1058,39 @@ export default function SolarSystemInteractiveGame() {
       const delta = e.deltaY * zoomFactor;
 
       const isTargetingBody = sceneContextRef.current.targetedMesh !== null;
-      // Allow zooming right down to 1.14 (Low Earth Orbit / satellite altitude) when looking at Earth!
+      const newRadius = currentR + delta;
+
+      // When zooming close to Earth surface, seamlessly transition directly into Google Maps Satellite
+      if (isTargetingBody && newRadius <= 1.22) {
+        setViewMode('maps');
+        return;
+      }
+
+      // Allow zooming right down to 1.14 (Low Earth Orbit / satellite altitude) when looking at Earth
       const minRadius = isTargetingBody ? 1.14 : 3.0;
 
       sceneContextRef.current.spherical.radius = THREE.MathUtils.clamp(
-        currentR + delta,
+        newRadius,
         minRadius,
         350
       );
+    };
+
+    const onDoubleClick = (e: MouseEvent) => {
+      if (!sceneContextRef.current || !container) return;
+      const rect = container.getBoundingClientRect();
+      const mouse = new THREE.Vector2(
+        ((e.clientX - rect.left) / container.clientWidth) * 2 - 1,
+        -((e.clientY - rect.top) / container.clientHeight) * 2 + 1
+      );
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, sceneContextRef.current.camera);
+      if (sceneContextRef.current.earthMesh) {
+        const earthHits = raycaster.intersectObject(sceneContextRef.current.earthMesh);
+        if (earthHits.length > 0) {
+          setViewMode('maps');
+        }
+      }
     };
 
     const onCanvasClick = (e: MouseEvent) => {
@@ -1118,6 +1143,7 @@ export default function SolarSystemInteractiveGame() {
     window.addEventListener('mouseup', onMouseUp);
     container.addEventListener('wheel', onWheel, { passive: false });
     container.addEventListener('click', onCanvasClick);
+    container.addEventListener('dblclick', onDoubleClick);
     window.addEventListener('resize', onResize);
 
     // Animation Render Loop with Real Keplerian Time Physics
@@ -1230,6 +1256,7 @@ export default function SolarSystemInteractiveGame() {
       window.removeEventListener('mouseup', onMouseUp);
       container.removeEventListener('wheel', onWheel);
       container.removeEventListener('click', onCanvasClick);
+      container.removeEventListener('dblclick', onDoubleClick);
       window.removeEventListener('resize', onResize);
       renderer.dispose();
     };
@@ -1254,9 +1281,9 @@ export default function SolarSystemInteractiveGame() {
     setIsEarthFocused(false);
     if (!sceneContextRef.current) return;
     sceneContextRef.current.targetedMesh = null;
-    sceneContextRef.current.spherical.radius = 90;
-    sceneContextRef.current.spherical.theta = 0.45;
-    sceneContextRef.current.spherical.phi = 1.15;
+    sceneContextRef.current.spherical.radius = 75;
+    sceneContextRef.current.spherical.theta = 0.52;
+    sceneContextRef.current.spherical.phi = 1.38;
   };
 
   // Cinematic Low Earth Orbit Sunrise Horizon View (Matching photo)
