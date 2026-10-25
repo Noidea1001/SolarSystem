@@ -29,6 +29,8 @@ import {
 } from 'lucide-react';
 
 
+import GoogleMapsEarthExplorer from './GoogleMapsEarthExplorer';
+
 interface CountryPoint {
   id: string;
   name: string;
@@ -556,6 +558,12 @@ export default function SolarSystemInteractiveGame() {
   const [isEarthFocused, setIsEarthFocused] = useState(false);
   const [targetSolarStatus, setTargetSolarStatus] = useState<'day' | 'night' | 'twilight'>('day');
   const [liveUtcString, setLiveUtcString] = useState('');
+  const [viewMode, setViewMode] = useState<'space' | 'maps'>('space');
+  const [mapsTarget, setMapsTarget] = useState<{ lat: number; lng: number; zoom: number }>({
+    lat: 12.5657,
+    lng: 104.991,
+    zoom: 7,
+  });
 
   const earthCloudsRef = useRef<THREE.Mesh | null>(null);
   const earthAtmoRef = useRef<THREE.ShaderMaterial | null>(null);
@@ -791,56 +799,6 @@ export default function SolarSystemInteractiveGame() {
       `,
     });
 
-    // Helper: Google Maps Billboard Label
-    const createCountryLabelSprite = (countryName: string, isCambodia: boolean, isUserLocation: boolean = false): THREE.Sprite => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 256;
-      canvas.height = 64;
-      const ctx = canvas.getContext('2d')!;
-      ctx.clearRect(0, 0, 256, 64);
-
-      // Card pill background
-      if (isUserLocation) {
-        ctx.fillStyle = 'rgba(6, 78, 59, 0.95)';
-        ctx.strokeStyle = '#10b981';
-      } else if (isCambodia) {
-        ctx.fillStyle = 'rgba(3, 105, 161, 0.95)';
-        ctx.strokeStyle = '#38bdf8';
-      } else {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
-        ctx.strokeStyle = 'rgba(148, 163, 184, 0.6)';
-      }
-      ctx.lineWidth = 2.5;
-
-      const px = 6, py = 10, pw = 244, ph = 44, pr = 8;
-      ctx.beginPath();
-      if (ctx.roundRect) {
-        ctx.roundRect(px, py, pw, ph, pr);
-      } else {
-        ctx.rect(px, py, pw, ph);
-      }
-      ctx.fill();
-      ctx.stroke();
-
-      // Country Name
-      ctx.font = 'bold 20px system-ui, -apple-system, sans-serif';
-      ctx.fillStyle = isUserLocation ? '#34d399' : isCambodia ? '#ffffff' : '#f1f5f9';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(countryName.toUpperCase(), 128, 32);
-
-      const sprTex = new THREE.CanvasTexture(canvas);
-      sprTex.minFilter = THREE.LinearFilter;
-      const sprMat = new THREE.SpriteMaterial({
-        map: sprTex,
-        transparent: true,
-        depthTest: false,
-      });
-      const sprite = new THREE.Sprite(sprMat);
-      sprite.scale.set(0.32, 0.08, 1);
-      return sprite;
-    };
-
     let earthMesh: THREE.Mesh | null = null;
     let earthBodyGroup: THREE.Group | null = null;
     let userPinGroup: THREE.Group | null = null;
@@ -936,42 +894,30 @@ export default function SolarSystemInteractiveGame() {
         tiltGroup.add(atmoMesh);
         earthAtmoRef.current = atmoMat;
 
-        // Add 3D Country Markers on Earth with Google Maps precision & labels
+        // Add 3D Country Markers on Earth (Clean, subtle surface beacons with depth test enabled)
         REAL_WORLD_COUNTRIES.forEach((c) => {
           const mGroup = new THREE.Group();
           const isKh = c.id === 'khm';
 
           const dot = new THREE.Mesh(
-            new THREE.SphereGeometry(0.02, 12, 12),
-            new THREE.MeshBasicMaterial({ color: isKh ? 0x38bdf8 : 0x94a3b8 })
+            new THREE.SphereGeometry(0.018, 12, 12),
+            new THREE.MeshBasicMaterial({ color: isKh ? 0x38bdf8 : 0x94a3b8, depthTest: true })
           );
           const ring = new THREE.Mesh(
-            new THREE.RingGeometry(0.025, 0.05, 16),
+            new THREE.RingGeometry(0.022, 0.045, 16),
             new THREE.MeshBasicMaterial({
               color: isKh ? 0x38bdf8 : 0x64748b,
               side: THREE.DoubleSide,
               transparent: true,
-              opacity: 0.8,
+              opacity: 0.75,
+              depthTest: true,
             })
           );
           ring.rotation.x = Math.PI / 2;
-
-          // Vertical stem pin connecting surface to label
-          const stemGeo = new THREE.CylinderGeometry(0.002, 0.002, 0.035, 8);
-          const stemMat = new THREE.MeshBasicMaterial({ color: isKh ? 0x38bdf8 : 0x64748b });
-          const stem = new THREE.Mesh(stemGeo, stemMat);
-          stem.position.set(0, 0.018, 0);
-
           mGroup.add(dot);
           mGroup.add(ring);
-          mGroup.add(stem);
 
-          // Google Maps Billboard Label
-          const label = createCountryLabelSprite(c.name, isKh);
-          label.position.set(0, 0.048, 0);
-          mGroup.add(label);
-
-          const pos = latLngToVector3(c.lat, c.lng, planet.sizeRadius + 0.015);
+          const pos = latLngToVector3(c.lat, c.lng, planet.sizeRadius + 0.008);
           mGroup.position.copy(pos);
           body.add(mGroup);
           countryMarkers.push({ country: c, marker: mGroup });
@@ -979,22 +925,15 @@ export default function SolarSystemInteractiveGame() {
 
         // GPS User Marker
         userPinGroup = new THREE.Group();
-        const pinDot = new THREE.Mesh(new THREE.SphereGeometry(0.028, 16, 16), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
-        const pinRadar = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.085, 20), new THREE.MeshBasicMaterial({ color: 0x10b981, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }));
+        const pinDot = new THREE.Mesh(new THREE.SphereGeometry(0.024, 16, 16), new THREE.MeshBasicMaterial({ color: 0x10b981, depthTest: true }));
+        const pinRadar = new THREE.Mesh(new THREE.RingGeometry(0.035, 0.075, 20), new THREE.MeshBasicMaterial({ color: 0x10b981, side: THREE.DoubleSide, transparent: true, opacity: 0.9, depthTest: true }));
         pinRadar.rotation.x = Math.PI / 2;
-        const pinStem = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.045, 8), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
-        pinStem.position.set(0, 0.022, 0);
-
-        const userPinLabel = createCountryLabelSprite('MY CURRENT GPS LOCATION', false, true);
-        userPinLabel.position.set(0, 0.065, 0);
 
         userPinGroup.add(pinDot);
         userPinGroup.add(pinRadar);
-        userPinGroup.add(pinStem);
-        userPinGroup.add(userPinLabel);
         body.add(userPinGroup);
 
-        const initPinPos = latLngToVector3(REAL_WORLD_COUNTRIES[0].lat, REAL_WORLD_COUNTRIES[0].lng, planet.sizeRadius + 0.015);
+        const initPinPos = latLngToVector3(REAL_WORLD_COUNTRIES[0].lat, REAL_WORLD_COUNTRIES[0].lng, planet.sizeRadius + 0.008);
         userPinGroup.position.copy(initPinPos);
 
         // Real Moon with 27.3 Day Orbital Cycle & 5.14° Inclination
@@ -1363,6 +1302,11 @@ export default function SolarSystemInteractiveGame() {
   const handleSelectCountry = (country: CountryPoint) => {
     setSelectedCountry(country);
     setIsEarthFocused(true);
+    setMapsTarget({
+      lat: country.lat,
+      lng: country.lng,
+      zoom: country.id === 'khm' ? 8 : 6,
+    });
 
     const earthData = REAL_PLANETS_PHYSICS.find((p) => p.id === 'earth')!;
     setSelectedPlanet(earthData);
@@ -1407,6 +1351,7 @@ export default function SolarSystemInteractiveGame() {
       (pos) => {
         const { latitude, longitude } = pos.coords;
         setUserLocation({ lat: latitude, lng: longitude });
+        setMapsTarget({ lat: latitude, lng: longitude, zoom: 14 });
         setLocatingStatus(`Locked: ${latitude.toFixed(4)}° N, ${longitude.toFixed(4)}° E`);
 
         if (sceneContextRef.current && sceneContextRef.current.userPinMesh && sceneContextRef.current.earthMesh) {
@@ -1451,6 +1396,18 @@ export default function SolarSystemInteractiveGame() {
       (c) => c.name.toLowerCase().includes(q) || c.capital.toLowerCase().includes(q) || c.majorSites.toLowerCase().includes(q)
     );
   }, [countrySearch]);
+
+  // Seamless switch to Google Maps Satellite View
+  if (viewMode === 'maps') {
+    return (
+      <GoogleMapsEarthExplorer
+        initialLat={mapsTarget.lat}
+        initialLng={mapsTarget.lng}
+        initialZoom={mapsTarget.zoom}
+        onReturnToSpace={() => setViewMode('space')}
+      />
+    );
+  }
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-space-950 select-none font-mono text-xs">
@@ -1540,9 +1497,25 @@ export default function SolarSystemInteractiveGame() {
         </div>
       </div>
 
-      {/* Quick Perspective Views: Astronaut Horizon Sunrise, Global Earth, Cambodia, GPS */}
+      {/* Quick Perspective Views: Google Maps Satellite, Astronaut Horizon Sunrise, Global Earth, Cambodia, GPS */}
       <div className="absolute top-16 inset-x-4 z-20 flex justify-center pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-1.5 bg-space-950/90 backdrop-blur-md p-1.5 rounded-xl border border-space-700/80 shadow-2xl overflow-x-auto text-xs">
+          <button
+            onClick={() => {
+              setMapsTarget({
+                lat: selectedCountry.lat,
+                lng: selectedCountry.lng,
+                zoom: selectedCountry.id === 'khm' ? 8 : 6,
+              });
+              setViewMode('maps');
+            }}
+            className="px-3 py-1.5 rounded-lg bg-aeroblue hover:bg-aeroblue-light text-space-950 font-bold transition-all flex items-center gap-1.5 shadow-md shadow-aeroblue/25 whitespace-nowrap cursor-pointer"
+            title="Explore Google Maps Satellite View with real country borders, provinces & roads"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span>GOOGLE MAPS SATELLITE</span>
+          </button>
+
           <button
             onClick={handleCinematicHorizonView}
             className="px-3 py-1.5 rounded-lg bg-aeroamber/20 hover:bg-aeroamber/30 text-aeroamber-light border border-aeroamber/40 font-bold transition-all flex items-center gap-1.5 shadow-sm whitespace-nowrap"
@@ -1739,6 +1712,22 @@ export default function SolarSystemInteractiveGame() {
                       <span>TERRESTRIAL COUNTRY EXPLORER (MAPS MODE)</span>
                     </div>
                   </div>
+
+                  {/* Enter Fullscreen Google Maps Satellite View */}
+                  <button
+                    onClick={() => {
+                      setMapsTarget({
+                        lat: selectedCountry.lat,
+                        lng: selectedCountry.lng,
+                        zoom: selectedCountry.id === 'khm' ? 8 : 6,
+                      });
+                      setViewMode('maps');
+                    }}
+                    className="w-full py-2.5 px-3 rounded-lg bg-aeroblue hover:bg-aeroblue-light text-space-950 font-bold transition-all flex items-center justify-center gap-2 text-xs shadow-md shadow-aeroblue/25 cursor-pointer"
+                  >
+                    <Globe className="w-4 h-4" />
+                    <span>ZOOM INTO GOOGLE MAPS SATELLITE VIEW</span>
+                  </button>
 
                   {/* Locate GPS Button */}
                   <button
