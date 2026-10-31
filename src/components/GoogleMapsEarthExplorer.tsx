@@ -8,7 +8,6 @@ import {
   RotateCcw,
   ZoomIn,
   ZoomOut,
-  MapPin,
   Globe,
   X,
   Compass,
@@ -17,37 +16,8 @@ import {
   CloudRain,
   Eye,
   EyeOff,
-  ChevronDown,
 } from 'lucide-react';
 import { computeSolarTerminatorPolygon } from '../utils/ephemeris';
-
-interface CountryQuickLink {
-  id: string;
-  name: string;
-  country: string;
-  lat: number;
-  lng: number;
-  zoom: number;
-}
-
-const QUICK_COUNTRIES: CountryQuickLink[] = [
-  { id: 'khm', name: 'Cambodia', country: 'Cambodia', lat: 12.5657, lng: 104.991, zoom: 7 },
-  { id: 'angkor', name: 'Angkor Wat', country: 'Cambodia', lat: 13.4125, lng: 103.867, zoom: 15 },
-  { id: 'pp', name: 'Phnom Penh', country: 'Cambodia', lat: 11.5564, lng: 104.9282, zoom: 13 },
-  { id: 'tha', name: 'Bangkok', country: 'Thailand', lat: 13.7563, lng: 100.5018, zoom: 12 },
-  { id: 'vnm', name: 'Hanoi', country: 'Vietnam', lat: 21.0285, lng: 105.8542, zoom: 12 },
-  { id: 'sgp', name: 'Singapore', country: 'Singapore', lat: 1.3521, lng: 103.8198, zoom: 12 },
-  { id: 'jpn', name: 'Tokyo', country: 'Japan', lat: 35.6762, lng: 139.6503, zoom: 12 },
-  { id: 'fra', name: 'Paris', country: 'France', lat: 48.8566, lng: 2.3522, zoom: 12 },
-  { id: 'gbr', name: 'London', country: 'United Kingdom', lat: 51.5074, lng: -0.1278, zoom: 12 },
-  { id: 'usa', name: 'Washington D.C.', country: 'United States', lat: 38.9072, lng: -77.0369, zoom: 11 },
-  { id: 'ksc', name: 'NASA Kennedy Space Center', country: 'United States', lat: 28.5729, lng: -80.649, zoom: 14 },
-  { id: 'chn', name: 'Beijing', country: 'China', lat: 39.9042, lng: 116.4074, zoom: 11 },
-  { id: 'ind', name: 'New Delhi', country: 'India', lat: 28.6139, lng: 77.209, zoom: 11 },
-  { id: 'egy', name: 'Cairo Pyramids', country: 'Egypt', lat: 29.9792, lng: 31.1342, zoom: 14 },
-  { id: 'aus', name: 'Sydney', country: 'Australia', lat: -33.8688, lng: 151.2093, zoom: 12 },
-  { id: 'bra', name: 'Rio de Janeiro', country: 'Brazil', lat: -22.9068, lng: -43.1729, zoom: 12 },
-];
 
 interface InspectedPoint {
   lat: number;
@@ -101,7 +71,6 @@ export default function GoogleMapsEarthExplorer({
 
   // Clean UI / Minimalist Map Mode
   const [isUiHidden, setIsUiHidden] = useState(false);
-  const [showDestinations, setShowDestinations] = useState(false);
   const [isMapInteracting, setIsMapInteracting] = useState(false);
   const interactTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isAscendingRef = useRef(false);
@@ -499,20 +468,6 @@ export default function GoogleMapsEarthExplorer({
     }
   };
 
-  // Fly to country preset
-  const handleFlyTo = (c: CountryQuickLink) => {
-    if (!mapInstanceRef.current) return;
-    mapInstanceRef.current.flyTo([c.lat, c.lng], c.zoom, { duration: 1.8 });
-
-    setInspectedPoint({
-      lat: c.lat,
-      lng: c.lng,
-      title: c.name,
-      subtitle: `${c.country} &bull; Coordinates: ${c.lat.toFixed(4)}°, ${c.lng.toFixed(4)}°`,
-      country: c.country,
-    });
-  };
-
   // Search Submit (Geocoding via OpenStreetMap Nominatim)
   const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -642,8 +597,8 @@ export default function GoogleMapsEarthExplorer({
             : 'opacity-100 pointer-events-auto translate-y-0'
         }`}
       >
-        {/* Left: Search Input Pill & Destinations Toggle */}
-        <div className="pointer-events-auto flex items-center gap-2 flex-1 max-w-lg">
+        {/* Left: Search Input Pill */}
+        <div className="pointer-events-auto flex items-center gap-2 flex-1 max-w-md">
           <form onSubmit={handleSearchSubmit} className="relative flex-1">
             <div className="flex items-center bg-space-950/85 backdrop-blur-xl border border-space-800 rounded-full shadow-2xl px-3.5 py-1.5 text-xs focus-within:border-aeroblue transition-all">
               <Search className="w-3.5 h-3.5 text-space-400 mr-2 flex-shrink-0" />
@@ -671,25 +626,6 @@ export default function GoogleMapsEarthExplorer({
               </button>
             </div>
           </form>
-
-          {/* Quick Destinations Expandable Toggle Button */}
-          <button
-            onClick={() => setShowDestinations(!showDestinations)}
-            className={`px-3 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 backdrop-blur-xl border shadow-xl cursor-pointer flex-shrink-0 ${
-              showDestinations
-                ? 'bg-aeroblue text-space-950 border-aeroblue'
-                : 'bg-space-950/85 hover:bg-space-900 text-space-300 hover:text-white border-space-800'
-            }`}
-            title="Toggle Quick Landmark Destinations"
-          >
-            <MapPin className="w-3 h-3 text-aeroblue" />
-            <span className="hidden sm:inline">PLACES</span>
-            <ChevronDown
-              className={`w-3 h-3 transition-transform duration-200 ${
-                showDestinations ? 'rotate-180 text-space-950' : 'text-space-400'
-              }`}
-            />
-          </button>
         </div>
 
         {/* Right: Clear View & Return to 3D Solar System Pill */}
@@ -714,35 +650,6 @@ export default function GoogleMapsEarthExplorer({
           </button>
         </div>
       </div>
-
-      {/* Expandable Destinations Bar (Only appears when requested by user) */}
-      {showDestinations && (
-        <div
-          className={`absolute top-16 inset-x-4 z-20 flex justify-center pointer-events-none transition-all duration-300 ${
-            isUiHidden || isMapInteracting ? 'opacity-0 pointer-events-none' : 'opacity-100'
-          }`}
-        >
-          <div className="pointer-events-auto flex items-center gap-1.5 overflow-x-auto max-w-full p-1.5 rounded-2xl bg-space-950/90 backdrop-blur-xl border border-space-800 shadow-2xl scrollbar-none animate-in fade-in duration-150">
-            {QUICK_COUNTRIES.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => {
-                  handleFlyTo(c);
-                  setShowDestinations(false);
-                }}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-                  c.id === 'khm' || c.id === 'angkor' || c.id === 'pp'
-                    ? 'bg-aeroblue/20 text-aeroblue-light border border-aeroblue/40 hover:bg-aeroblue/30'
-                    : 'bg-space-900/90 text-space-300 hover:text-white hover:bg-space-850 border border-space-800'
-                }`}
-              >
-                <MapPin className="w-3 h-3 text-aeroblue" />
-                <span>{c.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Sleek Location Card (When point is clicked or searched) */}
       {inspectedPoint && (
