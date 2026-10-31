@@ -107,8 +107,8 @@ export default function EphemerisTimeController({
               <FastForward className="w-3 h-3 text-aeroamber" />
               <span>ORBITAL TIME WARP SPEED</span>
             </label>
-            <div className="grid grid-cols-5 gap-1">
-              {[0.5, 1, 5, 25, 100].map((spd) => (
+            <div className="grid grid-cols-6 gap-1">
+              {[0.5, 1, 5, 25, 100, 1000].map((spd) => (
                 <button
                   key={spd}
                   onClick={() => onChangeSimSpeed(spd)}
@@ -118,7 +118,7 @@ export default function EphemerisTimeController({
                       : 'bg-space-900 text-space-300 border-space-800 hover:text-white'
                   }`}
                 >
-                  {spd}x
+                  {spd === 1 ? '1x (LIVE)' : `${spd}x`}
                 </button>
               ))}
             </div>
