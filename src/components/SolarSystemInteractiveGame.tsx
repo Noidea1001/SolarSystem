@@ -1347,42 +1347,45 @@ export default function SolarSystemInteractiveGame() {
         const orbitsVisible = showOrbitsRef.current;
         const beltVisible = showAsteroidBeltRef.current;
 
-        // Advance simulation clock (in warp mode: 1x = ~0.35 orbital days per frame; in live mode: exact Date.now() if speed === 1)
+        // Advance simulation clock at a calm, realistic, majestic pace
         if (!paused) {
           if (isRealTimeLiveRef.current && speed === 1) {
-            simDateMsRef.current += 0.25 * 86400000;
+            // Live time: smooth, realistic astronomical advance (~30 minutes of celestial time per real second)
+            simDateMsRef.current += 0.00028 * 86400000;
           } else {
-            simDateMsRef.current += 0.35 * speed * 86400000;
+            // Scaled warp time: smooth proportional advance
+            simDateMsRef.current += 0.00045 * speed * 86400000;
           }
           uiSyncCounter++;
-          if (uiSyncCounter % 15 === 0) {
+          if (uiSyncCounter % 20 === 0) {
             setSimDateMs(simDateMsRef.current);
           }
         }
 
         const daysJ2000 = getDaysSinceJ2000(new Date(simDateMsRef.current));
 
-        // Sun rotation & dynamic coronal pulse
-        sunMesh.rotation.y += 0.002;
-        const pulse = 1 + Math.sin(clock * 3) * 0.04;
+        // Sun rotation & calm gentle coronal breathing
+        sunMesh.rotation.y += 0.0003;
+        const pulse = 1 + Math.sin(clock * 1.4) * 0.022;
         coronaMesh.scale.set(pulse, pulse, pulse);
 
-        // Asteroid & Kuiper Belt rotation
+        // Asteroid & Kuiper Belt slow cosmic drift
         asteroidBeltMesh.visible = beltVisible;
         kuiperBeltMesh.visible = beltVisible;
         if (!paused && beltVisible) {
-          asteroidBeltMesh.rotation.y += 0.00028 * speed;
-          kuiperBeltMesh.rotation.y += 0.00008 * speed;
+          asteroidBeltMesh.rotation.y += 0.000035 * speed;
+          kuiperBeltMesh.rotation.y += 0.000012 * speed;
         }
 
-        // True J2000 Elliptical & Inclined Keplerian Orbital Motions
+        // True J2000 Elliptical & Inclined Keplerian Orbital Motions (Calm & Majestic)
         planetMeshes.forEach((item) => {
           const pos = computeKeplerianPosition3D(item.planet, daysJ2000);
           item.tiltGroup.position.set(pos.x, pos.y, pos.z);
           item.angle = pos.trueAnomalyRad;
 
+          // Planetary axial rotation: Slow and graceful (Earth takes ~85s for full turn at 1x)
           if (!paused) {
-            const rotFactor = (24.0 / Math.abs(item.planet.rotationPeriodHours)) * 0.018 * speed;
+            const rotFactor = (24.0 / Math.abs(item.planet.rotationPeriodHours)) * 0.0012 * speed;
             item.body.rotation.y += item.planet.isRetrograde ? -rotFactor : rotFactor;
           }
 
@@ -1397,10 +1400,10 @@ export default function SolarSystemInteractiveGame() {
           item.orbitLine.visible = orbitsVisible;
         });
 
-        // Orbit Major Moons around their parent planets
+        // Orbit Major Moons serenely around their parent planets
         moonMeshes.forEach((mItem) => {
           if (!paused) {
-            const mSpeed = (27.32 / mItem.moon.periodDays) * 0.012 * speed;
+            const mSpeed = (27.32 / mItem.moon.periodDays) * 0.00085 * speed;
             mItem.angle += mSpeed;
             mItem.mesh.position.set(
               Math.cos(mItem.angle) * mItem.moon.orbitRadius3D,
@@ -1412,13 +1415,13 @@ export default function SolarSystemInteractiveGame() {
           mItem.orbitLine.visible = orbitsVisible;
         });
 
-        // Orbit Deep Space Missions & Live ISS
+        // Orbit Deep Space Missions & Live ISS with realistic satellite drift
         spacecraftMeshes.forEach((sItem) => {
           if (!paused) {
-            sItem.angle += 0.015 * sItem.mission.orbitOffset3D.speed * Math.min(speed, 10);
+            sItem.angle += 0.0014 * sItem.mission.orbitOffset3D.speed * Math.min(speed, 3.5);
             const r = sItem.mission.orbitOffset3D.r;
             sItem.mesh.position.set(Math.cos(sItem.angle) * r, 0, Math.sin(sItem.angle) * r);
-            sItem.mesh.rotation.y += 0.04;
+            sItem.mesh.rotation.y += 0.012;
           }
         });
 
@@ -1444,14 +1447,14 @@ export default function SolarSystemInteractiveGame() {
         // Real-Time Earth Rotation & Atmospheric Shader Synchronization
         if (earthMesh && earthShaderMaterial) {
           if (!paused && isRealTimeLiveRef.current && speed === 1) {
-            const now = new Date();
+            const now = new Date(simDateMsRef.current);
             const utcSeconds = now.getUTCHours() * 3600 + now.getUTCMinutes() * 60 + now.getUTCSeconds();
             const dayFraction = utcSeconds / 86400;
             earthMesh.rotation.y = dayFraction * 2 * Math.PI + Math.PI;
           }
 
           if (earthCloudsRef.current && !paused) {
-            earthCloudsRef.current.rotation.y += 0.00032 * speed;
+            earthCloudsRef.current.rotation.y += 0.000075 * speed;
           }
 
           const earthWorldPos = new THREE.Vector3();
