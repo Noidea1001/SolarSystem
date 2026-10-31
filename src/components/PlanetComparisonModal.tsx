@@ -1,8 +1,123 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import * as THREE from 'three';
 import { X, Scale, ArrowLeftRight, Compass } from 'lucide-react';
 import { CELESTIAL_BODIES_PHYSICS, CelestialBodyPhysics } from '../data/celestialBodies';
+
+function RotatingPlanetGlobe({ body, size }: { body: CelestialBodyPhysics; size: number }) {
+  const mountRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!mountRef.current) return;
+    const container = mountRef.current;
+    const renderSize = Math.max(24, Math.min(size, 145));
+
+    container.innerHTML = '';
+
+    const scene = new THREE.Scene();
+    const fov = 42;
+    const camera = new THREE.PerspectiveCamera(fov, 1, 0.1, 100);
+    camera.position.z = body.id === 'saturn' ? 3.8 : 2.65;
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setSize(renderSize, renderSize);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
+    container.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    sunLight.position.set(4, 2, 4);
+    scene.add(sunLight);
+
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.35);
+    rimLight.position.set(-4, -2, -3);
+    scene.add(rimLight);
+
+    const geometry = new THREE.SphereGeometry(1, 48, 48);
+
+    const textureLoader = new THREE.TextureLoader();
+    const texture = textureLoader.load(body.textureUrl);
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    const material = new THREE.MeshStandardMaterial({
+      map: texture,
+      roughness: 0.75,
+      metalness: 0.08,
+    });
+
+    const planetMesh = new THREE.Mesh(geometry, material);
+    if (body.axialTiltDeg) {
+      planetMesh.rotation.z = (body.axialTiltDeg * Math.PI) / 180;
+    }
+    scene.add(planetMesh);
+
+    let ringsMesh: THREE.Mesh | null = null;
+    if (body.id === 'saturn') {
+      const ringGeo = new THREE.RingGeometry(1.22, 2.15, 64);
+      const ringTex = textureLoader.load('/textures/planets/saturn_ring.png');
+      ringTex.colorSpace = THREE.SRGBColorSpace;
+      const ringMat = new THREE.MeshStandardMaterial({
+        map: ringTex,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.9,
+      });
+      ringsMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringsMesh.rotation.x = Math.PI / 2;
+      planetMesh.add(ringsMesh);
+    }
+
+    let isRunning = true;
+    let animId: number;
+
+    // Calm, slow realistic planetary rotation
+    const animate = () => {
+      if (!isRunning) return;
+      planetMesh.rotation.y += 0.003;
+      renderer.render(scene, camera);
+      animId = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      isRunning = false;
+      cancelAnimationFrame(animId);
+      renderer.dispose();
+      geometry.dispose();
+      material.dispose();
+      texture.dispose();
+      if (ringsMesh) {
+        ringsMesh.geometry.dispose();
+        (ringsMesh.material as THREE.Material).dispose();
+      }
+      if (container.contains(renderer.domElement)) {
+        container.removeChild(renderer.domElement);
+      }
+    };
+  }, [body.id, body.textureUrl, body.axialTiltDeg, size]);
+
+  const renderSize = Math.max(24, Math.min(size, 145));
+
+  return (
+    <div
+      style={{
+        width: `${renderSize}px`,
+        height: `${renderSize}px`,
+        filter: `drop-shadow(0 0 16px ${body.colorHex}55)`,
+      }}
+      className="relative flex items-center justify-center transition-all duration-300"
+    >
+      <div ref={mountRef} className="w-full h-full flex items-center justify-center" />
+    </div>
+  );
+}
 
 interface PlanetComparisonModalProps {
   initialPrimaryId?: string;
@@ -22,8 +137,8 @@ export default function PlanetComparisonModal({
   const bodyB = CELESTIAL_BODIES_PHYSICS.find((b) => b.id === bodyBId) || CELESTIAL_BODIES_PHYSICS[5];
 
   const maxDiameter = Math.max(bodyA.diameterKm, bodyB.diameterKm, 1);
-  const scaleA = Math.max(12, Math.round((bodyA.diameterKm / maxDiameter) * 140));
-  const scaleB = Math.max(12, Math.round((bodyB.diameterKm / maxDiameter) * 140));
+  const scaleA = Math.max(22, Math.round((bodyA.diameterKm / maxDiameter) * 140));
+  const scaleB = Math.max(22, Math.round((bodyB.diameterKm / maxDiameter) * 140));
 
   const diameterRatio = (bodyA.diameterKm / bodyB.diameterKm).toFixed(2);
   const gravityRatio = (bodyA.surfaceGravityMs2 / Math.max(bodyB.surfaceGravityMs2, 0.0001)).toFixed(2);
@@ -99,15 +214,7 @@ export default function PlanetComparisonModal({
           <div className="bg-space-900/60 border border-space-850 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-around gap-6 min-h-[190px]">
             <div className="flex flex-col items-center gap-2">
               <div className="h-[145px] flex items-center justify-center">
-                <div
-                  style={{
-                    width: `${scaleA}px`,
-                    height: `${scaleA}px`,
-                    background: `radial-gradient(circle at 32% 32%, ${bodyA.colorHex}, #050811 88%)`,
-                    boxShadow: `0 0 25px ${bodyA.colorHex}44`,
-                  }}
-                  className="rounded-full border border-white/20 transition-all duration-300"
-                />
+                <RotatingPlanetGlobe body={bodyA} size={scaleA} />
               </div>
               <div className="text-center">
                 <div className="font-bold text-white text-xs">{bodyA.name.split(' (')[0]}</div>
@@ -123,15 +230,7 @@ export default function PlanetComparisonModal({
 
             <div className="flex flex-col items-center gap-2">
               <div className="h-[145px] flex items-center justify-center">
-                <div
-                  style={{
-                    width: `${scaleB}px`,
-                    height: `${scaleB}px`,
-                    background: `radial-gradient(circle at 32% 32%, ${bodyB.colorHex}, #050811 88%)`,
-                    boxShadow: `0 0 25px ${bodyB.colorHex}44`,
-                  }}
-                  className="rounded-full border border-white/20 transition-all duration-300"
-                />
+                <RotatingPlanetGlobe body={bodyB} size={scaleB} />
               </div>
               <div className="text-center">
                 <div className="font-bold text-white text-xs">{bodyB.name.split(' (')[0]}</div>
