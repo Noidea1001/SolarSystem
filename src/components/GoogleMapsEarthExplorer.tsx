@@ -33,6 +33,7 @@ interface GoogleMapsEarthExplorerProps {
   initialZoom?: number;
   isEnteringFromSpace?: boolean;
   onReturnToSpace: () => void;
+  onPrepareReturnToSpace?: () => void;
 }
 
 export default function GoogleMapsEarthExplorer({
@@ -41,6 +42,7 @@ export default function GoogleMapsEarthExplorer({
   initialZoom = 7,
   isEnteringFromSpace = true,
   onReturnToSpace,
+  onPrepareReturnToSpace,
 }: GoogleMapsEarthExplorerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -80,8 +82,9 @@ export default function GoogleMapsEarthExplorer({
     if (isAscendingRef.current) return;
     isAscendingRef.current = true;
     setIsAscending(true);
+    onPrepareReturnToSpace?.();
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo([currentCoords.lat, currentCoords.lng], 2, { duration: 0.85 });
+      mapInstanceRef.current.flyTo([currentCoords.lat, currentCoords.lng], 2, { duration: 0.75 });
     }
     setTimeout(() => {
       onReturnToSpace();
@@ -90,9 +93,9 @@ export default function GoogleMapsEarthExplorer({
 
   // Zoom Out Handler with Auto-Switch to 3D Round Earth
   const handleZoomOutOrReturn = () => {
-    if (!mapInstanceRef.current) return;
+    if (!mapInstanceRef.current || isAscendingRef.current) return;
     const currentZ = mapInstanceRef.current.getZoom();
-    if (currentZ <= 3.2) {
+    if (currentZ <= 3.6) {
       handleReturnToSpace();
     } else {
       mapInstanceRef.current.zoomOut();
@@ -181,19 +184,29 @@ export default function GoogleMapsEarthExplorer({
       });
 
       // Auto-switch to 3D Solar System round Earth when user zooms out to planetary scale
-      map.on('zoomend', () => {
-        const z = map.getZoom();
-        if (z <= 2.6 && !isAscendingRef.current) {
+      const checkZoomOutThreshold = () => {
+        if (!mapInstanceRef.current || isAscendingRef.current) return;
+        const z = mapInstanceRef.current.getZoom();
+        if (z <= 3.3) {
+          handleReturnToSpace();
+        }
+      };
+
+      map.on('zoomend', checkZoomOutThreshold);
+      map.on('zoom', () => {
+        if (!mapInstanceRef.current || isAscendingRef.current) return;
+        const z = mapInstanceRef.current.getZoom();
+        if (z <= 3.1) {
           handleReturnToSpace();
         }
       });
 
-      // Scroll wheel listener: returning to 3D spherical Earth on wheel zoom-out at minimum zoom
+      // Scroll wheel listener: returning to 3D spherical Earth on wheel zoom-out at planetary scale
       const containerEl = mapContainerRef.current;
       const onContainerWheel = (e: WheelEvent) => {
-        if (e.deltaY > 0 && mapInstanceRef.current) {
+        if (e.deltaY > 0 && mapInstanceRef.current && !isAscendingRef.current) {
           const z = mapInstanceRef.current.getZoom();
-          if (z <= 3.2 && !isAscendingRef.current) {
+          if (z <= 3.6) {
             e.preventDefault();
             handleReturnToSpace();
           }
@@ -571,7 +584,13 @@ export default function GoogleMapsEarthExplorer({
   };
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-space-950 font-mono select-none">
+    <div
+      className={`relative w-screen h-screen overflow-hidden bg-space-950 font-mono select-none transition-all duration-700 ease-in-out ${
+        isAscending
+          ? 'scale-[0.45] rounded-full opacity-0 shadow-[0_0_120px_rgba(56,189,248,0.95)] pointer-events-none'
+          : 'scale-100 rounded-none opacity-100'
+      }`}
+    >
       {/* Fullscreen Interactive Leaflet Satellite Map */}
       <div ref={mapContainerRef} className="absolute inset-0 w-full h-full z-10" />
 
@@ -592,7 +611,7 @@ export default function GoogleMapsEarthExplorer({
       {/* Top Floating Header: Clean, Minimalist, Auto-Hiding during Pan/Zoom */}
       <div
         className={`absolute top-4 inset-x-4 z-20 flex items-center justify-between gap-3 pointer-events-none transition-all duration-300 ${
-          isUiHidden || isMapInteracting
+          isUiHidden || isMapInteracting || isAscending
             ? 'opacity-0 pointer-events-none -translate-y-3'
             : 'opacity-100 pointer-events-auto translate-y-0'
         }`}
@@ -697,7 +716,7 @@ export default function GoogleMapsEarthExplorer({
       {/* Bottom-Left Minimal 1-Line Telemetry Pill */}
       <div
         className={`absolute bottom-4 left-4 z-20 pointer-events-none transition-all duration-300 ${
-          isUiHidden || isMapInteracting ? 'opacity-0' : 'opacity-100'
+          isUiHidden || isMapInteracting || isAscending ? 'opacity-0' : 'opacity-100'
         }`}
       >
         <div className="pointer-events-auto flex items-center gap-2 bg-space-950/80 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-space-800 text-[10px] text-space-300 font-mono shadow-xl">
@@ -717,7 +736,7 @@ export default function GoogleMapsEarthExplorer({
       {/* Bottom-Right Clean Floating Controls */}
       <div
         className={`absolute bottom-4 right-4 z-20 flex flex-col items-end gap-2 pointer-events-none transition-all duration-300 ${
-          isUiHidden || isMapInteracting ? 'opacity-0' : 'opacity-100'
+          isUiHidden || isMapInteracting || isAscending ? 'opacity-0' : 'opacity-100'
         }`}
       >
         {/* Orbital & Atmospheric Overlays Pill */}
@@ -838,16 +857,14 @@ export default function GoogleMapsEarthExplorer({
         </div>
       </div>
 
-      {/* Atmospheric Ascent Overlay when returning to 3D Space */}
+      {/* Seamless Transition Overlay to 3D Round Earth */}
       {isAscending && (
-        <div className="absolute inset-0 z-50 pointer-events-none flex flex-col items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 animate-cloud-ascend bg-gradient-radial from-white/80 via-aeroblue/40 to-space-950/90" />
-          <div className="relative z-10 text-center font-mono space-y-1.5 bg-space-950/80 px-6 py-3 rounded-2xl border border-aeroblue/40 backdrop-blur-md shadow-2xl">
-            <div className="w-2 h-2 rounded-full bg-aeroblue mx-auto animate-ping" />
-            <div className="text-xs font-bold text-white tracking-widest uppercase">
-              ASCENDING INTO EXOSPHERE // RE-ENTERING SPACE
+        <div className="absolute inset-0 z-50 pointer-events-none flex flex-col items-center justify-end pb-12 overflow-hidden animate-in fade-in duration-200">
+          <div className="relative z-10 text-center font-mono bg-space-950/85 px-5 py-2 rounded-full border border-aeroblue/40 backdrop-blur-md shadow-2xl">
+            <div className="text-[11px] font-bold text-white tracking-widest uppercase flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-aeroblue animate-ping" />
+              <span>TRANSITIONING TO 3D ROUND EARTH</span>
             </div>
-            <div className="text-[10px] text-aeroblue-light font-bold">DISENGAGING TERRESTRIAL SATELLITE GRID</div>
           </div>
         </div>
       )}
