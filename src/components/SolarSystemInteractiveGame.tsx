@@ -1279,10 +1279,15 @@ export default function SolarSystemInteractiveGame() {
     let animId: number;
     let clock = 0;
     let uiSyncCounter = 0;
+    let lastPerfTime = performance.now();
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
       clock += 0.016;
+
+      const nowPerf = performance.now();
+      const deltaRealSec = Math.min((nowPerf - lastPerfTime) / 1000, 0.1);
+      lastPerfTime = nowPerf;
 
       if (sceneContextRef.current) {
         const {
@@ -1306,17 +1311,17 @@ export default function SolarSystemInteractiveGame() {
         const orbitsVisible = showOrbitsRef.current;
         const beltVisible = showAsteroidBeltRef.current;
 
-        // Advance simulation clock at a calm, realistic, majestic pace
+        // 100% Scientific Real-Time / Time Warp Clock Synchronization
         if (!paused) {
           if (isRealTimeLiveRef.current && speed === 1) {
-            // Live time: smooth, realistic astronomical advance (~30 minutes of celestial time per real second)
-            simDateMsRef.current += 0.00028 * 86400000;
+            // Live Real-Time: exact 1:1 synchronization with the real-world clock (Date.now())
+            simDateMsRef.current = Date.now();
           } else {
-            // Scaled warp time: smooth proportional advance
-            simDateMsRef.current += 0.00045 * speed * 86400000;
+            // Educational time warp: scaled advance based on actual elapsed seconds
+            simDateMsRef.current += deltaRealSec * speed * 1000;
           }
           uiSyncCounter++;
-          if (uiSyncCounter % 20 === 0) {
+          if (uiSyncCounter % 15 === 0) {
             setSimDateMs(simDateMsRef.current);
           }
         }
@@ -1336,15 +1341,15 @@ export default function SolarSystemInteractiveGame() {
           kuiperBeltMesh.rotation.y += 0.000012 * speed;
         }
 
-        // True J2000 Elliptical & Inclined Keplerian Orbital Motions (Calm & Majestic)
+        // True J2000 Elliptical & Inclined Keplerian Orbital Motions
         planetMeshes.forEach((item) => {
           const pos = computeKeplerianPosition3D(item.planet, daysJ2000);
           item.tiltGroup.position.set(pos.x, pos.y, pos.z);
           item.angle = pos.trueAnomalyRad;
 
-          // Planetary axial rotation: Slow and graceful (Earth takes ~85s for full turn at 1x)
-          if (!paused) {
-            const rotFactor = (24.0 / Math.abs(item.planet.rotationPeriodHours)) * 0.0012 * speed;
+          // Planetary axial rotation: strictly follow real physical rotational periods
+          if (!paused && item.planet.id !== 'earth') {
+            const rotFactor = ((deltaRealSec * speed) / (Math.abs(item.planet.rotationPeriodHours) * 3600)) * 2 * Math.PI;
             item.body.rotation.y += item.planet.isRetrograde ? -rotFactor : rotFactor;
           }
 
@@ -1359,17 +1364,17 @@ export default function SolarSystemInteractiveGame() {
           item.orbitLine.visible = orbitsVisible;
         });
 
-        // Orbit Major Moons serenely around their parent planets
+        // Orbit Major Moons around parent planets (e.g. Moon around Earth in 27.32 days)
         moonMeshes.forEach((mItem) => {
           if (!paused) {
-            const mSpeed = (27.32 / mItem.moon.periodDays) * 0.00085 * speed;
+            const mSpeed = ((deltaRealSec * speed) / (mItem.moon.periodDays * 86400)) * 2 * Math.PI;
             mItem.angle += mSpeed;
             mItem.mesh.position.set(
               Math.cos(mItem.angle) * mItem.moon.orbitRadius3D,
               0,
               Math.sin(mItem.angle) * mItem.moon.orbitRadius3D
             );
-            mItem.mesh.rotation.y = -mItem.angle;
+            mItem.mesh.rotation.y = -mItem.angle; // Tidally locked
           }
           mItem.orbitLine.visible = orbitsVisible;
         });
@@ -1393,21 +1398,31 @@ export default function SolarSystemInteractiveGame() {
           laserLineMesh.visible = false;
         }
 
-        // Real-Time Earth Rotation & Atmospheric Shader Synchronization
+        // 100% Scientific Real-Time 24-Hour Earth Diurnal Rotation & Day/Night Shader
         if (earthMesh && earthShaderMaterial) {
-          if (!paused && isRealTimeLiveRef.current && speed === 1) {
-            const now = new Date(simDateMsRef.current);
-            const utcSeconds = now.getUTCHours() * 3600 + now.getUTCMinutes() * 60 + now.getUTCSeconds();
-            const dayFraction = utcSeconds / 86400;
-            earthMesh.rotation.y = dayFraction * 2 * Math.PI + Math.PI;
-          }
+          const simDate = new Date(simDateMsRef.current);
+          const utcSeconds =
+            simDate.getUTCHours() * 3600 +
+            simDate.getUTCMinutes() * 60 +
+            simDate.getUTCSeconds() +
+            simDate.getUTCMilliseconds() / 1000;
+          const dayFraction = utcSeconds / 86400;
 
-          if (earthCloudsRef.current && !paused) {
-            earthCloudsRef.current.rotation.y += 0.000075 * speed;
-          }
-
+          // Compute Sun's position vector relative to Earth in ecliptic plane
           const earthWorldPos = new THREE.Vector3();
           earthMesh.getWorldPosition(earthWorldPos);
+          const sunAngle = Math.atan2(-earthWorldPos.x, -earthWorldPos.z);
+
+          // 24-hour physical diurnal rotation:
+          // Greenwich meridian (0 deg) faces Sun at 12:00 UTC (solar noon).
+          // Cambodia (105 deg E) faces Sun at 05:00 UTC (12:00 PM local solar noon).
+          // Completes exactly one 360-degree rotation every 24 hours.
+          earthMesh.rotation.y = sunAngle + (dayFraction - 0.5) * 2 * Math.PI - Math.PI / 2;
+
+          if (earthCloudsRef.current && !paused) {
+            // Gentle trade wind atmospheric cloud drift
+            earthCloudsRef.current.rotation.y = earthMesh.rotation.y + (simDateMsRef.current / (86400000 * 30)) * 2 * Math.PI;
+          }
 
           const sunDir = new THREE.Vector3(0, 0, 0).sub(earthWorldPos).normalize();
           const invMatrix = new THREE.Matrix4().extractRotation(earthMesh.matrixWorld).invert();
@@ -1705,7 +1720,13 @@ export default function SolarSystemInteractiveGame() {
             }}
             onChangeSimSpeed={(spd) => {
               setSimSpeed(spd);
-              if (spd !== 1) setIsRealTimeLive(false);
+              if (spd === 1) {
+                setIsRealTimeLive(true);
+                simDateMsRef.current = Date.now();
+                setSimDateMs(Date.now());
+              } else {
+                setIsRealTimeLive(false);
+              }
             }}
           />
 
