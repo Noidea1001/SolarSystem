@@ -38,10 +38,8 @@ import EphemerisTimeController from './EphemerisTimeController';
 import {
   CELESTIAL_BODIES_PHYSICS,
   MAJOR_MOONS_DATA,
-  DEEP_SPACE_MISSIONS,
   CelestialBodyPhysics,
   MoonData,
-  SpacecraftData,
 } from '../data/celestialBodies';
 import {
   getDaysSinceJ2000,
@@ -332,7 +330,6 @@ export default function SolarSystemInteractiveGame() {
   const mountRef = useRef<HTMLDivElement>(null);
   const [selectedPlanet, setSelectedPlanet] = useState<RealPlanetPhysics | null>(null);
   const [selectedMoon, setSelectedMoon] = useState<MoonData | null>(null);
-  const [selectedMission, setSelectedMission] = useState<SpacecraftData | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [simSpeed, setSimSpeed] = useState<number>(1);
   const [showOrbits, setShowOrbits] = useState(true);
@@ -526,12 +523,6 @@ export default function SolarSystemInteractiveGame() {
       pivot: THREE.Group;
       mesh: THREE.Mesh;
       orbitLine: THREE.Line;
-      angle: number;
-    }[];
-    spacecraftMeshes: {
-      mission: SpacecraftData;
-      pivot: THREE.Group;
-      mesh: THREE.Group;
       angle: number;
     }[];
     asteroidBeltMesh: THREE.InstancedMesh;
@@ -776,7 +767,6 @@ export default function SolarSystemInteractiveGame() {
     const countryMarkers: { country: CountryPoint; marker: THREE.Group }[] = [];
     const planetMeshes: any[] = [];
     const moonMeshes: any[] = [];
-    const spacecraftMeshes: any[] = [];
 
     const moonTex = textureLoader.load('/textures/planets/moon_1k.jpg');
     moonTex.colorSpace = THREE.SRGBColorSpace;
@@ -1108,50 +1098,7 @@ export default function SolarSystemInteractiveGame() {
     const asteroidBeltMesh = createBeltInstancedMesh(1500, 33.5, 41.2, 2.4, 0x9ca3af, 0.085);
     const kuiperBeltMesh = createBeltInstancedMesh(700, 96.0, 114.0, 6.0, 0x7dd3fc, 0.12);
 
-    // 5. Deep Space Missions & Live ISS 3D Orbital Beacons
-    DEEP_SPACE_MISSIONS.forEach((mission, idx) => {
-      const pivot = new THREE.Group();
-      pivot.rotation.z = (mission.orbitOffset3D.inclinationDeg * Math.PI) / 180;
-
-      if (mission.targetBodyId === 'sun') {
-        scene.add(pivot);
-      } else {
-        const targetPlanet = planetMeshes.find((p) => p.planet.id === mission.targetBodyId);
-        if (targetPlanet) {
-          targetPlanet.tiltGroup.add(pivot);
-        } else {
-          scene.add(pivot);
-        }
-      }
-
-      const craftGroup = new THREE.Group();
-      const coreMesh = new THREE.Mesh(
-        new THREE.OctahedronGeometry(0.065, 0),
-        new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
-      );
-      const haloMesh = new THREE.Mesh(
-        new THREE.RingGeometry(0.09, 0.14, 16),
-        new THREE.MeshBasicMaterial({
-          color: 0x10b981,
-          side: THREE.DoubleSide,
-          transparent: true,
-          opacity: 0.85,
-        })
-      );
-      craftGroup.add(coreMesh);
-      craftGroup.add(haloMesh);
-      craftGroup.position.set(mission.orbitOffset3D.r, 0, 0);
-      pivot.add(craftGroup);
-
-      spacecraftMeshes.push({
-        mission,
-        pivot,
-        mesh: craftGroup,
-        angle: idx * 1.7,
-      });
-    });
-
-    // 6. 3D Interplanetary Laser Telemetry Line (For Distance & Light-Time Ranger)
+    // 5. 3D Interplanetary Laser Telemetry Line (For Distance & Light-Time Ranger)
     const laserGeo = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(0, 0, 0),
       new THREE.Vector3(10, 0, 0),
@@ -1178,7 +1125,6 @@ export default function SolarSystemInteractiveGame() {
       userPinMesh: userPinGroup,
       planetMeshes,
       moonMeshes,
-      spacecraftMeshes,
       asteroidBeltMesh,
       kuiperBeltMesh,
       laserLineMesh,
@@ -1344,7 +1290,6 @@ export default function SolarSystemInteractiveGame() {
           coronaMesh,
           planetMeshes,
           moonMeshes,
-          spacecraftMeshes,
           asteroidBeltMesh,
           kuiperBeltMesh,
           laserLineMesh,
@@ -1427,16 +1372,6 @@ export default function SolarSystemInteractiveGame() {
             mItem.mesh.rotation.y = -mItem.angle;
           }
           mItem.orbitLine.visible = orbitsVisible;
-        });
-
-        // Orbit Deep Space Missions & Live ISS with realistic satellite drift
-        spacecraftMeshes.forEach((sItem) => {
-          if (!paused) {
-            sItem.angle += 0.0014 * sItem.mission.orbitOffset3D.speed * Math.min(speed, 3.5);
-            const r = sItem.mission.orbitOffset3D.r;
-            sItem.mesh.position.set(Math.cos(sItem.angle) * r, 0, Math.sin(sItem.angle) * r);
-            sItem.mesh.rotation.y += 0.012;
-          }
         });
 
         // Update 3D Interplanetary Laser Telemetry Line
@@ -1537,7 +1472,6 @@ export default function SolarSystemInteractiveGame() {
   const handleSelectPlanet = (planet: RealPlanetPhysics) => {
     setSelectedPlanet(planet);
     setSelectedMoon(null);
-    setSelectedMission(null);
     setIsEarthFocused(planet.id === 'earth');
 
     if (!sceneContextRef.current) return;
@@ -1551,7 +1485,6 @@ export default function SolarSystemInteractiveGame() {
   // Moon Focus
   const handleSelectMoon = (moon: MoonData) => {
     setSelectedMoon(moon);
-    setSelectedMission(null);
     const parentPlanet = REAL_PLANETS_PHYSICS.find((p) => p.id === moon.parentId) || null;
     setSelectedPlanet(parentPlanet);
     setIsEarthFocused(false);
@@ -1561,19 +1494,6 @@ export default function SolarSystemInteractiveGame() {
     if (mItem) {
       sceneContextRef.current.targetedMesh = mItem.mesh;
       sceneContextRef.current.spherical.radius = Math.max(1.2, moon.radius3D * 6.5);
-    }
-  };
-
-  // Spacecraft Mission Focus
-  const handleSelectMission = (mission: SpacecraftData | null) => {
-    setSelectedMission(mission);
-    setSelectedMoon(null);
-    if (!mission || !sceneContextRef.current) return;
-
-    const sItem = sceneContextRef.current.spacecraftMeshes.find((s) => s.mission.id === mission.id);
-    if (sItem) {
-      sceneContextRef.current.targetedMesh = sItem.mesh;
-      sceneContextRef.current.spherical.radius = 1.6;
     }
   };
 
@@ -1771,7 +1691,6 @@ export default function SolarSystemInteractiveGame() {
             simDateMs={simDateMs}
             isRealTimeLive={isRealTimeLive}
             simSpeed={simSpeed}
-            selectedMission={selectedMission}
             onJumpToDate={(ts) => {
               setIsRealTimeLive(false);
               simDateMsRef.current = ts;
@@ -1788,8 +1707,6 @@ export default function SolarSystemInteractiveGame() {
               setSimSpeed(spd);
               if (spd !== 1) setIsRealTimeLive(false);
             }}
-            onSelectMission={handleSelectMission}
-            onOpenIssInMaps={(lat, lng) => triggerCinematicDiveToMaps(lat, lng, 5)}
           />
 
           {/* Top Floating Minimalist Navigation Bar (Single Slim Row) */}
