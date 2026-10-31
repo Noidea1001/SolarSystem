@@ -8,17 +8,10 @@ import {
   RotateCcw,
   ZoomIn,
   ZoomOut,
-  Compass,
   MapPin,
-  Crosshair,
   Globe,
-  Sun,
-  Moon,
   X,
-  Maximize2,
-  Minimize2,
-  ExternalLink,
-  ChevronRight,
+  Compass,
 } from 'lucide-react';
 
 interface CountryQuickLink {
@@ -34,16 +27,16 @@ const QUICK_COUNTRIES: CountryQuickLink[] = [
   { id: 'khm', name: 'Cambodia', country: 'Cambodia', lat: 12.5657, lng: 104.991, zoom: 7 },
   { id: 'angkor', name: 'Angkor Wat', country: 'Cambodia', lat: 13.4125, lng: 103.867, zoom: 15 },
   { id: 'pp', name: 'Phnom Penh', country: 'Cambodia', lat: 11.5564, lng: 104.9282, zoom: 13 },
-  { id: 'jpn', name: 'Tokyo', country: 'Japan', lat: 35.6762, lng: 139.6503, zoom: 12 },
-  { id: 'usa', name: 'Washington D.C.', country: 'United States', lat: 38.9072, lng: -77.0369, zoom: 11 },
-  { id: 'ksc', name: 'NASA Kennedy Space Center', country: 'United States', lat: 28.5729, lng: -80.649, zoom: 14 },
-  { id: 'fra', name: 'Paris', country: 'France', lat: 48.8566, lng: 2.3522, zoom: 12 },
-  { id: 'gbr', name: 'London', country: 'United Kingdom', lat: 51.5074, lng: -0.1278, zoom: 12 },
-  { id: 'chn', name: 'Beijing', country: 'China', lat: 39.9042, lng: 116.4074, zoom: 11 },
-  { id: 'ind', name: 'New Delhi', country: 'India', lat: 28.6139, lng: 77.209, zoom: 11 },
   { id: 'tha', name: 'Bangkok', country: 'Thailand', lat: 13.7563, lng: 100.5018, zoom: 12 },
   { id: 'vnm', name: 'Hanoi', country: 'Vietnam', lat: 21.0285, lng: 105.8542, zoom: 12 },
   { id: 'sgp', name: 'Singapore', country: 'Singapore', lat: 1.3521, lng: 103.8198, zoom: 12 },
+  { id: 'jpn', name: 'Tokyo', country: 'Japan', lat: 35.6762, lng: 139.6503, zoom: 12 },
+  { id: 'fra', name: 'Paris', country: 'France', lat: 48.8566, lng: 2.3522, zoom: 12 },
+  { id: 'gbr', name: 'London', country: 'United Kingdom', lat: 51.5074, lng: -0.1278, zoom: 12 },
+  { id: 'usa', name: 'Washington D.C.', country: 'United States', lat: 38.9072, lng: -77.0369, zoom: 11 },
+  { id: 'ksc', name: 'NASA Kennedy Space Center', country: 'United States', lat: 28.5729, lng: -80.649, zoom: 14 },
+  { id: 'chn', name: 'Beijing', country: 'China', lat: 39.9042, lng: 116.4074, zoom: 11 },
+  { id: 'ind', name: 'New Delhi', country: 'India', lat: 28.6139, lng: 77.209, zoom: 11 },
   { id: 'egy', name: 'Cairo Pyramids', country: 'Egypt', lat: 29.9792, lng: 31.1342, zoom: 14 },
   { id: 'aus', name: 'Sydney', country: 'Australia', lat: -33.8688, lng: 151.2093, zoom: 12 },
   { id: 'bra', name: 'Rio de Janeiro', country: 'Brazil', lat: -22.9068, lng: -43.1729, zoom: 12 },
@@ -61,6 +54,7 @@ interface GoogleMapsEarthExplorerProps {
   initialLat?: number;
   initialLng?: number;
   initialZoom?: number;
+  isEnteringFromSpace?: boolean;
   onReturnToSpace: () => void;
 }
 
@@ -68,12 +62,14 @@ export default function GoogleMapsEarthExplorer({
   initialLat = 12.5657,
   initialLng = 104.991,
   initialZoom = 7,
+  isEnteringFromSpace = true,
   onReturnToSpace,
 }: GoogleMapsEarthExplorerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const userMarkerRef = useRef<any>(null);
   const clickMarkerRef = useRef<any>(null);
+  const searchMarkerRef = useRef<any>(null);
   const layerGroupRef = useRef<any>(null);
 
   const [activeLayer, setActiveLayer] = useState<'google-hybrid' | 'esri-satellite' | 'google-roads'>('google-hybrid');
@@ -83,11 +79,22 @@ export default function GoogleMapsEarthExplorer({
     lng: initialLng,
     zoom: initialZoom,
   });
-  const [cursorCoords, setCursorCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [gpsStatus, setGpsStatus] = useState<string>('Ready to pinpoint your real GPS position');
+  const [gpsStatus, setGpsStatus] = useState<string>('');
   const [isLocating, setIsLocating] = useState(false);
   const [inspectedPoint, setInspectedPoint] = useState<InspectedPoint | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [isAscending, setIsAscending] = useState(false);
+
+  // Return to Space with smooth flyout animation
+  const handleReturnToSpace = () => {
+    setIsAscending(true);
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo([currentCoords.lat, currentCoords.lng], 3, { duration: 0.8 });
+    }
+    setTimeout(() => {
+      onReturnToSpace();
+    }, 650);
+  };
 
   // Initialize Leaflet Map with Google Maps Satellite Hybrid Tiles
   useEffect(() => {
@@ -102,9 +109,11 @@ export default function GoogleMapsEarthExplorer({
         mapInstanceRef.current.remove();
       }
 
+      const startZoom = isEnteringFromSpace ? Math.max(3, initialZoom - 3) : initialZoom;
+
       const map = L.map(mapContainerRef.current, {
         center: [initialLat, initialLng],
-        zoom: initialZoom,
+        zoom: startZoom,
         minZoom: 2,
         maxZoom: 20,
         zoomControl: false,
@@ -127,7 +136,7 @@ export default function GoogleMapsEarthExplorer({
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         {
           maxZoom: 19,
-          attribution: 'Esri, Maxar, Earthstar Geographics',
+          attribution: 'Esri, Maxar',
         }
       );
 
@@ -156,16 +165,10 @@ export default function GoogleMapsEarthExplorer({
         setCurrentCoords({ lat: c.lat, lng: c.lng, zoom: z });
       });
 
-      // Cursor Coordinates Tracker
-      map.on('mousemove', (e: any) => {
-        setCursorCoords({ lat: e.latlng.lat, lng: e.latlng.lng });
-      });
-
       // Click Anywhere to Inspect Country / Location
       map.on('click', async (e: any) => {
         const { lat, lng } = e.latlng;
 
-        // Custom pulsing crosshair pin
         const inspectIcon = L.divIcon({
           className: 'inspect-location-beacon',
           html: `
@@ -202,9 +205,9 @@ export default function GoogleMapsEarthExplorer({
         setInspectedPoint({
           lat,
           lng,
-          title: `Telemetry Coordinates: ${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
-          subtitle: 'Querying orbital reverse geocoding telemetry...',
-          country: 'Detecting territory...',
+          title: `Coordinates: ${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
+          subtitle: 'Querying location telemetry...',
+          country: 'Detecting...',
         });
 
         // Reverse Geocoding via OpenStreetMap Nominatim
@@ -215,8 +218,8 @@ export default function GoogleMapsEarthExplorer({
           const data = await res.json();
           if (data && data.address) {
             const addr = data.address;
-            const primaryName = addr.city || addr.town || addr.village || addr.municipality || addr.state || data.name || 'Terrestrial Location';
-            const countryName = addr.country || 'International Territory';
+            const primaryName = addr.city || addr.town || addr.village || addr.municipality || addr.state || data.name || 'Location';
+            const countryName = addr.country || 'Territory';
             const detailStr = [addr.county, addr.state, addr.country].filter(Boolean).join(', ');
 
             setInspectedPoint({
@@ -232,7 +235,7 @@ export default function GoogleMapsEarthExplorer({
               lng,
               title: `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`,
               subtitle: 'Open Oceanic or Remote Terrestrial Coordinates',
-              country: 'International Waters / Territory',
+              country: 'International Territory',
             });
           }
         } catch {
@@ -241,57 +244,19 @@ export default function GoogleMapsEarthExplorer({
             lng,
             title: `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`,
             subtitle: 'Direct Geographic GPS Coordinates',
-            country: 'Global Earth Surface',
+            country: 'Earth Surface',
           });
         }
       });
 
-      // Quick Country Hub Markers
-      const createBeaconIcon = (label: string, isCambodia: boolean) => {
-        return L.divIcon({
-          className: 'custom-map-beacon',
-          html: `
-            <div style="position: relative; display: flex; flex-direction: column; align-items: center; pointer-events: auto;">
-              <div style="
-                background: ${isCambodia ? 'rgba(8, 47, 73, 0.95)' : 'rgba(15, 23, 42, 0.9)'};
-                color: ${isCambodia ? '#38bdf8' : '#f8fafc'};
-                border: 1.5px solid ${isCambodia ? '#38bdf8' : '#64748b'};
-                border-radius: 6px;
-                padding: 3px 8px;
-                font-size: 11px;
-                font-weight: 700;
-                letter-spacing: 0.5px;
-                white-space: nowrap;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-                margin-bottom: 4px;
-              ">
-                ${label.toUpperCase()}
-              </div>
-              <div style="
-                width: 12px;
-                height: 12px;
-                border-radius: 50%;
-                background: ${isCambodia ? '#38bdf8' : '#94a3b8'};
-                border: 2px solid #ffffff;
-                box-shadow: 0 0 10px ${isCambodia ? '#38bdf8' : '#64748b'};
-              "></div>
-            </div>
-          `,
-          iconSize: [120, 40],
-          iconAnchor: [60, 36],
-        });
-      };
-
-      QUICK_COUNTRIES.forEach((c) => {
-        const isKh = c.id === 'khm' || c.id === 'angkor' || c.id === 'pp';
-        const marker = L.marker([c.lat, c.lng], {
-          icon: createBeaconIcon(c.name, isKh),
-        }).addTo(map);
-
-        marker.on('click', () => {
-          map.flyTo([c.lat, c.lng], c.zoom, { duration: 1.6 });
-        });
-      });
+      // Smooth arrival flight animation from orbit down to ground level
+      if (isEnteringFromSpace) {
+        setTimeout(() => {
+          if (mapInstanceRef.current && isMounted) {
+            mapInstanceRef.current.flyTo([initialLat, initialLng], initialZoom, { duration: 1.8 });
+          }
+        }, 150);
+      }
     });
 
     return () => {
@@ -301,7 +266,7 @@ export default function GoogleMapsEarthExplorer({
         mapInstanceRef.current = null;
       }
     };
-  }, [initialLat, initialLng, initialZoom]);
+  }, [initialLat, initialLng, initialZoom, isEnteringFromSpace]);
 
   // Switch Tile Layer
   const handleSwitchLayer = (type: 'google-hybrid' | 'esri-satellite' | 'google-roads') => {
@@ -328,6 +293,14 @@ export default function GoogleMapsEarthExplorer({
   const handleFlyTo = (c: CountryQuickLink) => {
     if (!mapInstanceRef.current) return;
     mapInstanceRef.current.flyTo([c.lat, c.lng], c.zoom, { duration: 1.8 });
+
+    setInspectedPoint({
+      lat: c.lat,
+      lng: c.lng,
+      title: c.name,
+      subtitle: `${c.country} &bull; Coordinates: ${c.lat.toFixed(4)}°, ${c.lng.toFixed(4)}°`,
+      country: c.country,
+    });
   };
 
   // Search Submit (Geocoding via OpenStreetMap Nominatim)
@@ -336,7 +309,7 @@ export default function GoogleMapsEarthExplorer({
     if (!searchQuery.trim() || !mapInstanceRef.current) return;
 
     setIsSearching(true);
-    setGpsStatus(`Searching orbital database for: "${searchQuery}"...`);
+    setGpsStatus(`Searching: "${searchQuery}"...`);
 
     try {
       const res = await fetch(
@@ -349,8 +322,8 @@ export default function GoogleMapsEarthExplorer({
         const item = data[0];
         const lat = parseFloat(item.lat);
         const lon = parseFloat(item.lon);
-        mapInstanceRef.current.flyTo([lat, lon], 12, { duration: 2.0 });
-        setGpsStatus(`Target Acquired: ${item.display_name.split(',')[0]}`);
+        mapInstanceRef.current.flyTo([lat, lon], 13, { duration: 2.0 });
+        setGpsStatus(`Locked: ${item.display_name.split(',')[0]}`);
 
         setInspectedPoint({
           lat,
@@ -360,29 +333,29 @@ export default function GoogleMapsEarthExplorer({
           country: item.display_name.split(',').slice(-1)[0].trim(),
         });
       } else {
-        setGpsStatus(`No location found for "${searchQuery}".`);
+        setGpsStatus(`No location found for "${searchQuery}"`);
       }
     } catch {
       setIsSearching(false);
-      setGpsStatus('Search query timed out. Please check network.');
+      setGpsStatus('Search timed out');
     }
   };
 
   // Pinpoint Real GPS Location
   const handleLocateMe = () => {
     if (!navigator.geolocation) {
-      setGpsStatus('Geolocation not supported by this browser');
+      setGpsStatus('Geolocation not supported');
       return;
     }
 
     setIsLocating(true);
-    setGpsStatus('Acquiring high-precision GPS lock on your coordinates...');
+    setGpsStatus('Acquiring GPS lock...');
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setIsLocating(false);
         const { latitude, longitude, accuracy } = pos.coords;
-        setGpsStatus(`GPS Locked: ${latitude.toFixed(5)}° N, ${longitude.toFixed(5)}° E (accuracy ±${Math.round(accuracy)}m)`);
+        setGpsStatus(`GPS: ${latitude.toFixed(4)}°, ${longitude.toFixed(4)}° (±${Math.round(accuracy)}m)`);
 
         if (mapInstanceRef.current) {
           import('leaflet').then((L) => {
@@ -395,20 +368,6 @@ export default function GoogleMapsEarthExplorer({
               html: `
                 <div style="position: relative; display: flex; flex-direction: column; align-items: center;">
                   <div style="
-                    background: rgba(6, 78, 59, 0.95);
-                    color: #34d399;
-                    border: 2px solid #10b981;
-                    border-radius: 6px;
-                    padding: 3px 8px;
-                    font-size: 11px;
-                    font-weight: 800;
-                    white-space: nowrap;
-                    box-shadow: 0 4px 14px rgba(0,0,0,0.8);
-                    margin-bottom: 4px;
-                  ">
-                    YOUR CURRENT GPS LOCATION
-                  </div>
-                  <div style="
                     width: 16px;
                     height: 16px;
                     border-radius: 50%;
@@ -418,8 +377,8 @@ export default function GoogleMapsEarthExplorer({
                   "></div>
                 </div>
               `,
-              iconSize: [180, 50],
-              iconAnchor: [90, 44],
+              iconSize: [20, 20],
+              iconAnchor: [10, 10],
             });
 
             userMarkerRef.current = L.marker([latitude, longitude], { icon: gpsIcon }).addTo(mapInstanceRef.current);
@@ -429,7 +388,7 @@ export default function GoogleMapsEarthExplorer({
               lat: latitude,
               lng: longitude,
               title: 'Your Current Live Location',
-              subtitle: `GPS Accuracy within ±${Math.round(accuracy)} meters`,
+              subtitle: `GPS accuracy within ±${Math.round(accuracy)} meters`,
               country: 'Current Location',
             });
           });
@@ -437,7 +396,7 @@ export default function GoogleMapsEarthExplorer({
       },
       (err) => {
         setIsLocating(false);
-        setGpsStatus(`GPS fallback to Cambodia: ${err.message}`);
+        setGpsStatus(`GPS fallback: ${err.message}`);
         if (mapInstanceRef.current) {
           mapInstanceRef.current.flyTo([12.5657, 104.991], 8, { duration: 1.8 });
         }
@@ -451,82 +410,63 @@ export default function GoogleMapsEarthExplorer({
       {/* Fullscreen Interactive Leaflet Satellite Map */}
       <div ref={mapContainerRef} className="absolute inset-0 w-full h-full z-10" />
 
-      {/* Top Glassmorphic Navigation Bar */}
-      <div className="absolute top-4 inset-x-4 z-20 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
-        {/* Brand & Mode Switch */}
-        <div className="pointer-events-auto flex items-center gap-2.5 bg-space-950/90 backdrop-blur-md px-3.5 py-2 rounded-xl border border-space-700/80 shadow-2xl">
-          <div className="w-7 h-7 rounded-lg bg-aeroblue/20 border border-aeroblue/40 flex items-center justify-center text-aeroblue">
-            <Globe className="w-4 h-4 text-aeroblue" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <span>GOOGLE MAPS EARTH SATELLITE</span>
-              <span className="text-[9px] px-1.5 py-0.2 bg-aeroblue/20 text-aeroblue-light rounded border border-aeroblue/40">
-                100% REAL IMAGERY
-              </span>
+      {/* Top Floating Header: Single Clean Row */}
+      <div className="absolute top-4 inset-x-4 z-20 flex items-center justify-between gap-3 pointer-events-none">
+        {/* Left: Modern Clean Search Input Pill */}
+        <div className="pointer-events-auto flex items-center flex-1 max-w-md">
+          <form onSubmit={handleSearchSubmit} className="relative w-full">
+            <div className="flex items-center bg-space-950/85 backdrop-blur-xl border border-space-800 rounded-full shadow-2xl px-3.5 py-1.5 text-xs focus-within:border-aeroblue transition-all">
+              <Search className="w-3.5 h-3.5 text-space-400 mr-2 flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Search country, city, address..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent text-white placeholder-space-500 focus:outline-none text-xs"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="p-1 text-space-400 hover:text-white"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button
+                type="submit"
+                className="ml-2 px-3 py-1 rounded-full bg-aeroblue hover:bg-aeroblue-light text-space-950 font-bold text-[10px] transition-colors flex-shrink-0 cursor-pointer"
+              >
+                {isSearching ? '...' : 'SEARCH'}
+              </button>
             </div>
-            <div className="text-[10px] text-space-400">HIGH-RESOLUTION TRUE PHOTOGRAPHIC MAP & BORDERS</div>
-          </div>
+          </form>
         </div>
 
-        {/* Search Bar */}
-        <form onSubmit={handleSearchSubmit} className="pointer-events-auto relative flex-1 max-w-md">
-          <Search className="w-3.5 h-3.5 text-space-400 absolute left-3 top-3" />
-          <input
-            type="text"
-            placeholder="Search country, province, city, landmark (e.g. Cambodia, Angkor Wat, Tokyo, Paris)..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-space-950/90 backdrop-blur-md border border-space-700/80 rounded-xl pl-9 pr-20 py-2 text-xs text-white placeholder-space-500 focus:outline-none focus:border-aeroblue shadow-2xl"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute right-12 top-2.5 p-0.5 text-space-400 hover:text-white"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
+        {/* Right: Return to 3D Solar System Pill */}
+        <div className="pointer-events-auto flex items-center gap-2">
           <button
-            type="submit"
-            disabled={isSearching}
-            className="absolute right-1.5 top-1.5 px-2.5 py-1 rounded bg-aeroblue hover:bg-aeroblue-light text-space-950 font-bold text-[10px] transition-colors"
+            onClick={handleReturnToSpace}
+            className="px-4 py-2 rounded-full bg-aeroamber hover:bg-aeroamber-light text-space-950 font-bold text-xs transition-all flex items-center gap-2 shadow-xl shadow-aeroamber/20 cursor-pointer"
+            title="Return to 3D Solar System"
           >
-            {isSearching ? '...' : 'SEARCH'}
-          </button>
-        </form>
-
-        {/* Primary View Mode Switcher: Google Maps Satellite vs 3D Space */}
-        <div className="pointer-events-auto flex items-center gap-2 bg-space-950/90 backdrop-blur-md p-1 rounded-xl border border-space-700/80 shadow-2xl">
-          <div className="px-3 py-1.5 rounded-lg bg-aeroblue text-space-950 font-bold text-xs flex items-center gap-1.5 shadow-sm">
-            <Globe className="w-3.5 h-3.5" />
-            <span>GOOGLE MAPS SATELLITE</span>
-          </div>
-
-          <button
-            onClick={onReturnToSpace}
-            className="px-3 py-1.5 rounded-lg bg-space-850 hover:bg-space-800 text-aeroamber hover:text-white border border-aeroamber/40 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
-            title="Switch to 3D Deep Space & Solar System Simulation"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-aeroamber" />
-            <span>3D COSMIC SPACE VIEW</span>
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>RETURN TO SOLAR SYSTEM</span>
           </button>
         </div>
       </div>
 
-      {/* Quick Country Fly-to Bar */}
-      <div className="absolute top-20 inset-x-4 z-20 flex justify-center pointer-events-none">
-        <div className="pointer-events-auto flex items-center gap-1.5 bg-space-950/90 backdrop-blur-md p-1.5 rounded-xl border border-space-700/80 shadow-2xl overflow-x-auto max-w-full text-xs">
-          <span className="text-[10px] text-space-400 font-bold px-2 uppercase whitespace-nowrap">QUICK EXPLORE:</span>
+      {/* Sub-Header: Clean Horizontal Scrollable Destination Chips */}
+      <div className="absolute top-16 inset-x-4 z-20 flex justify-center pointer-events-none">
+        <div className="pointer-events-auto flex items-center gap-1.5 overflow-x-auto max-w-full py-1 scrollbar-none">
           {QUICK_COUNTRIES.map((c) => (
             <button
               key={c.id}
               onClick={() => handleFlyTo(c)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap flex items-center gap-1 ${
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 backdrop-blur-md shadow-md ${
                 c.id === 'khm' || c.id === 'angkor' || c.id === 'pp'
                   ? 'bg-aeroblue/20 text-aeroblue-light border border-aeroblue/40 hover:bg-aeroblue/30'
-                  : 'bg-space-900 text-space-300 hover:text-white hover:bg-space-800 border border-space-800'
+                  : 'bg-space-950/75 text-space-300 hover:text-white hover:bg-space-900 border border-space-800'
               }`}
             >
               <MapPin className="w-3 h-3 text-aeroblue" />
@@ -536,30 +476,29 @@ export default function GoogleMapsEarthExplorer({
         </div>
       </div>
 
-      {/* Click-to-Inspect Location Card */}
+      {/* Sleek Location Card (When point is clicked or searched) */}
       {inspectedPoint && (
-        <div className="absolute top-36 left-4 z-20 pointer-events-auto max-w-sm">
-          <div className="bg-space-950/95 backdrop-blur-md p-4 rounded-xl border border-aeroblue/40 shadow-2xl space-y-2 text-xs">
+        <div className="absolute top-28 left-4 z-20 pointer-events-auto max-w-sm animate-in fade-in duration-200">
+          <div className="bg-space-950/90 backdrop-blur-xl p-3.5 rounded-2xl border border-aeroblue/40 shadow-2xl space-y-2 text-xs">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-aeroblue/20 text-aeroblue border border-aeroblue/30 font-bold uppercase">
+                <span className="text-[9px] px-2 py-0.5 rounded-full bg-aeroblue/20 text-aeroblue border border-aeroblue/30 font-bold uppercase">
                   {inspectedPoint.country}
                 </span>
                 <h3 className="text-sm font-bold text-white mt-1 leading-tight">{inspectedPoint.title}</h3>
               </div>
               <button
                 onClick={() => setInspectedPoint(null)}
-                className="p-1 rounded hover:bg-space-800 text-space-400 hover:text-white"
+                className="p-1 rounded-full hover:bg-space-800 text-space-400 hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-[11px] text-space-300 leading-relaxed line-clamp-3">{inspectedPoint.subtitle}</p>
+            <p className="text-[11px] text-space-300 leading-relaxed line-clamp-2">{inspectedPoint.subtitle}</p>
 
             <div className="pt-2 border-t border-space-800 flex items-center justify-between text-[10px]">
-              <div className="text-space-400">
-                LAT: <span className="text-white font-bold">{inspectedPoint.lat.toFixed(4)}°</span> | LNG:{' '}
-                <span className="text-white font-bold">{inspectedPoint.lng.toFixed(4)}°</span>
+              <div className="text-space-400 font-mono">
+                {inspectedPoint.lat.toFixed(4)}°, {inspectedPoint.lng.toFixed(4)}°
               </div>
               <button
                 onClick={() => {
@@ -567,7 +506,7 @@ export default function GoogleMapsEarthExplorer({
                     mapInstanceRef.current.flyTo([inspectedPoint.lat, inspectedPoint.lng], 16, { duration: 1.5 });
                   }
                 }}
-                className="px-2 py-1 rounded bg-aeroblue text-space-950 font-bold hover:bg-aeroblue-light transition-colors"
+                className="px-2.5 py-1 rounded-full bg-aeroblue text-space-950 font-bold hover:bg-aeroblue-light transition-colors"
               >
                 ZOOM CLOSER
               </button>
@@ -576,123 +515,119 @@ export default function GoogleMapsEarthExplorer({
         </div>
       )}
 
-      {/* Floating Left GPS HUD */}
-      <div className="absolute bottom-6 left-4 z-20 pointer-events-none max-w-sm">
-        <div className="pointer-events-auto bg-space-950/90 backdrop-blur-md p-3.5 rounded-xl border border-space-700/80 space-y-2.5 shadow-2xl text-xs">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-aerogreen animate-pulse" />
-              <span className="text-white font-bold text-xs uppercase">GEOGRAPHIC TELEMETRY</span>
-            </div>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-space-900 text-space-300 border border-space-800 font-bold">
-              ZOOM: {Math.round(currentCoords.zoom)}x
-            </span>
-          </div>
-
-          {/* Pinpoint GPS Button */}
-          <button
-            onClick={handleLocateMe}
-            disabled={isLocating}
-            className="w-full py-2.5 px-3 rounded-lg bg-aerogreen hover:bg-aerogreen-light text-space-950 font-bold transition-all flex items-center justify-center gap-2 text-xs shadow-md shadow-aerogreen/20 cursor-pointer"
-          >
-            <Navigation className="w-4 h-4" />
-            <span>{isLocating ? 'LOCKING GPS SATELLITES...' : 'PINPOINT MY LIVE GPS LOCATION'}</span>
-          </button>
-          <div className="text-[10px] text-space-400 text-center leading-relaxed">{gpsStatus}</div>
-
-          {/* Coordinate Readout */}
-          <div className="p-2 bg-space-900 rounded border border-space-800 text-[10px] space-y-1">
-            <div className="flex justify-between">
-              <span className="text-space-400">CENTER LATITUDE:</span>
-              <span className="text-white font-bold">{currentCoords.lat.toFixed(5)}° N</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-space-400">CENTER LONGITUDE:</span>
-              <span className="text-white font-bold">{currentCoords.lng.toFixed(5)}° E</span>
-            </div>
-            {cursorCoords && (
-              <div className="flex justify-between text-aeroblue">
-                <span className="text-space-400">CURSOR POSITION:</span>
-                <span className="font-bold">
-                  {cursorCoords.lat.toFixed(4)}°, {cursorCoords.lng.toFixed(4)}°
-                </span>
-              </div>
-            )}
-            <div className="flex justify-between">
-              <span className="text-space-400">SATELLITE SOURCE:</span>
-              <span className="text-aeroblue font-bold">GOOGLE HYBRID (METRIC ACCURACY)</span>
-            </div>
-          </div>
+      {/* Bottom-Left Minimal 1-Line Telemetry Pill */}
+      <div className="absolute bottom-4 left-4 z-20 pointer-events-none">
+        <div className="pointer-events-auto flex items-center gap-2 bg-space-950/80 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-space-800 text-[10px] text-space-300 font-mono shadow-xl">
+          <span className="w-2 h-2 rounded-full bg-aerogreen animate-pulse" />
+          <span>{currentCoords.lat.toFixed(4)}° N, {currentCoords.lng.toFixed(4)}° E</span>
+          <span className="text-space-600">|</span>
+          <span>Zoom: {Math.round(currentCoords.zoom)}x</span>
+          {gpsStatus && (
+            <>
+              <span className="text-space-600">|</span>
+              <span className="text-aeroblue font-bold">{gpsStatus}</span>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Floating Layer Switcher & Zoom Controls on Right */}
-      <div className="absolute bottom-6 right-4 z-20 flex flex-col items-end gap-2 pointer-events-none">
-        {/* Layer Selector */}
-        <div className="pointer-events-auto flex items-center gap-1 bg-space-950/90 backdrop-blur-md p-1.5 rounded-xl border border-space-700/80 shadow-2xl text-xs">
+      {/* Bottom-Right Clean Floating Controls */}
+      <div className="absolute bottom-4 right-4 z-20 flex flex-col items-end gap-2 pointer-events-none">
+        {/* Layer Selector Pill */}
+        <div className="pointer-events-auto flex items-center gap-1 bg-space-950/80 backdrop-blur-xl p-1 rounded-full border border-space-800 shadow-xl text-xs">
           <button
             onClick={() => handleSwitchLayer('google-hybrid')}
-            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+            className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${
               activeLayer === 'google-hybrid'
                 ? 'bg-aeroblue text-space-950 shadow-sm'
-                : 'text-space-400 hover:text-white hover:bg-space-900'
+                : 'text-space-400 hover:text-white'
             }`}
           >
-            GOOGLE SATELLITE HYBRID
+            SATELLITE
           </button>
 
           <button
             onClick={() => handleSwitchLayer('esri-satellite')}
-            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+            className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${
               activeLayer === 'esri-satellite'
                 ? 'bg-aeroblue text-space-950 shadow-sm'
-                : 'text-space-400 hover:text-white hover:bg-space-900'
+                : 'text-space-400 hover:text-white'
             }`}
           >
-            NASA/ESRI TRUE COLOR
+            TRUE COLOR
           </button>
 
           <button
             onClick={() => handleSwitchLayer('google-roads')}
-            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+            className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${
               activeLayer === 'google-roads'
                 ? 'bg-aeroblue text-space-950 shadow-sm'
-                : 'text-space-400 hover:text-white hover:bg-space-900'
+                : 'text-space-400 hover:text-white'
             }`}
           >
-            STREETS & BORDERS
+            STREETS
           </button>
         </div>
 
-        {/* Zoom In / Out / Reset View */}
-        <div className="pointer-events-auto flex items-center gap-1 bg-space-950/90 backdrop-blur-md p-1.5 rounded-xl border border-space-700/80 shadow-2xl">
+        {/* Minimal Icon Controls Stack */}
+        <div className="pointer-events-auto flex items-center gap-1 bg-space-950/80 backdrop-blur-xl p-1 rounded-full border border-space-800 shadow-xl">
+          <button
+            onClick={handleLocateMe}
+            className={`p-2 rounded-full transition-all ${
+              isLocating
+                ? 'bg-aerogreen text-space-950 animate-pulse'
+                : 'bg-space-900 hover:bg-space-850 text-aerogreen'
+            }`}
+            title="Pinpoint My GPS Location"
+          >
+            <Navigation className="w-3.5 h-3.5" />
+          </button>
+
+          <div className="h-3 w-px bg-space-800" />
+
           <button
             onClick={() => mapInstanceRef.current && mapInstanceRef.current.zoomIn()}
-            className="p-2 rounded-lg bg-space-900 hover:bg-space-800 text-white transition-colors"
+            className="p-2 rounded-full bg-space-900 hover:bg-space-850 text-white transition-colors"
             title="Zoom In"
           >
-            <ZoomIn className="w-4 h-4" />
+            <ZoomIn className="w-3.5 h-3.5" />
           </button>
+
           <button
             onClick={() => mapInstanceRef.current && mapInstanceRef.current.zoomOut()}
-            className="p-2 rounded-lg bg-space-900 hover:bg-space-800 text-white transition-colors"
+            className="p-2 rounded-full bg-space-900 hover:bg-space-850 text-white transition-colors"
             title="Zoom Out"
           >
-            <ZoomOut className="w-4 h-4" />
+            <ZoomOut className="w-3.5 h-3.5" />
           </button>
+
           <button
             onClick={() => {
               if (mapInstanceRef.current) {
                 mapInstanceRef.current.flyTo([12.5657, 104.991], 3, { duration: 1.5 });
               }
             }}
-            className="p-2 rounded-lg bg-space-900 hover:bg-space-800 text-aeroblue transition-colors"
-            title="Full Global Earth View"
+            className="p-2 rounded-full bg-space-900 hover:bg-space-850 text-aeroblue transition-colors"
+            title="Full World View"
           >
-            <Globe className="w-4 h-4" />
+            <Globe className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
+
+      {/* Atmospheric Ascent Overlay when returning to 3D Space */}
+      {isAscending && (
+        <div className="absolute inset-0 z-50 pointer-events-none flex flex-col items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 animate-cloud-ascend bg-gradient-radial from-white/80 via-aeroblue/40 to-space-950/90" />
+          <div className="relative z-10 text-center font-mono space-y-1.5 bg-space-950/80 px-6 py-3 rounded-2xl border border-aeroblue/40 backdrop-blur-md shadow-2xl">
+            <div className="w-2 h-2 rounded-full bg-aeroblue mx-auto animate-ping" />
+            <div className="text-xs font-bold text-white tracking-widest uppercase">
+              ASCENDING INTO EXOSPHERE // RE-ENTERING SPACE
+            </div>
+            <div className="text-[10px] text-aeroblue-light font-bold">DISENGAGING TERRESTRIAL SATELLITE GRID</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
