@@ -74,3 +74,83 @@ body {
   border-color: rgba(14, 165, 233, 0.5);
   box-shadow: 0 0 15px rgba(14, 165, 233, 0.12);
 }
+
+/* Atmospheric Re-Entry & 3D Dive Animations */
+@keyframes atmosphericWarp {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(3.5);
+    opacity: 0;
+  }
+}
+
+@keyframes cloudDiveBurst {
+  0% {
+    transform: scale(0.6) rotate(0deg);
+    opacity: 0;
+    filter: blur(24px);
+  }
+  45% {
+    transform: scale(1.3) rotate(5deg);
+    opacity: 0.98;
+    filter: blur(6px);
+  }
+  100% {
+    transform: scale(3.4) rotate(12deg);
+    opacity: 0;
+    filter: blur(40px);
+  }
+}
+
+@keyframes cloudAscendBurst {
+  0% {
+    transform: scale(3.2) rotate(10deg);
+    opacity: 0;
+    filter: blur(35px);
+  }
+  50% {
+    transform: scale(1.3) rotate(4deg);
+    opacity: 0.95;
+    filter: blur(8px);
+  }
+  100% {
+    transform: scale(0.6) rotate(0deg);
+    opacity: 0;
+    filter: blur(24px);
+  }
+}
+
+@keyframes reEntryGlowFlash {
+  0% {
+    background-color: rgba(14, 165, 233, 0);
+  }
+  40% {
+    background-color: rgba(224, 242, 254, 0.75);
+  }
+  100% {
+    background-color: rgba(2, 6, 23, 0);
+  }
+}
+
+.animate-cloud-dive {
+  animation: cloudDiveBurst 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-cloud-ascend {
+  animation: cloudAscendBurst 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-warp-speed {
+  animation: atmosphericWarp 0.9s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.animate-reentry-flash {
+  animation: reEntryGlowFlash 1.1s ease-in-out forwards;
+}
+
