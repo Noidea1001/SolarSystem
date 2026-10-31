@@ -447,6 +447,20 @@ export default function SolarSystemInteractiveGame() {
     }, 1800);
   };
 
+  const handlePrepareReturnToSpace = () => {
+    if (sceneContextRef.current) {
+      const earthItem = sceneContextRef.current.planetMeshes.find((m) => m.planet.id === 'earth');
+      if (earthItem) {
+        sceneContextRef.current.targetedMesh = earthItem.body;
+        sceneContextRef.current.spherical.radius = 2.85;
+        sceneContextRef.current.spherical.theta = 0.52;
+        sceneContextRef.current.spherical.phi = 1.35;
+        setIsEarthFocused(true);
+        setSelectedPlanet(earthItem.planet);
+      }
+    }
+  };
+
   const handleReturnFromMaps = () => {
     isDivingRef.current = false;
     setIsDivingToMaps(false);
@@ -1718,7 +1732,7 @@ export default function SolarSystemInteractiveGame() {
       <div
         ref={mountRef}
         className={`absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing transition-opacity duration-300 ${
-          viewMode === 'maps' ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
+          viewMode === 'maps' ? 'pointer-events-none' : 'pointer-events-auto'
         }`}
       />
 
@@ -1731,6 +1745,7 @@ export default function SolarSystemInteractiveGame() {
             initialZoom={mapsTarget.zoom}
             isEnteringFromSpace={true}
             onReturnToSpace={handleReturnFromMaps}
+            onPrepareReturnToSpace={handlePrepareReturnToSpace}
           />
 
           {/* Stratospheric Cloud Dissolve on Arrival */}
