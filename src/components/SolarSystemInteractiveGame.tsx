@@ -556,14 +556,104 @@ export default function SolarSystemInteractiveGame() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locatingStatus, setLocatingStatus] = useState<string>('Ready to locate your real coordinates on Earth');
   const [isEarthFocused, setIsEarthFocused] = useState(false);
+  const isEarthFocusedRef = useRef(false);
+  useEffect(() => {
+    isEarthFocusedRef.current = isEarthFocused;
+  }, [isEarthFocused]);
   const [targetSolarStatus, setTargetSolarStatus] = useState<'day' | 'night' | 'twilight'>('day');
   const [liveUtcString, setLiveUtcString] = useState('');
-  const [viewMode, setViewMode] = useState<'space' | 'maps'>('maps');
+  const [viewMode, setViewMode] = useState<'space' | 'maps'>('space');
   const [mapsTarget, setMapsTarget] = useState<{ lat: number; lng: number; zoom: number }>({
     lat: 12.5657,
     lng: 104.991,
     zoom: 7,
   });
+
+  // Cinematic 3D Dive to Google Maps State
+  const [isDivingToMaps, setIsDivingToMaps] = useState(false);
+  const [diveStage, setDiveStage] = useState<'idle' | 'hyperspeed' | 'cloud_burst' | 'cloud_dissolve'>('idle');
+  const [diveAltitude, setDiveAltitude] = useState(1200);
+  const isDivingRef = useRef(false);
+
+  const triggerCinematicDiveToMaps = (lat = 12.5657, lng = 104.991, zoom = 7) => {
+    if (isDivingRef.current) return;
+    isDivingRef.current = true;
+    setIsDivingToMaps(true);
+    setDiveStage('hyperspeed');
+    setDiveAltitude(1200);
+
+    setMapsTarget({ lat, lng, zoom });
+
+    if (sceneContextRef.current) {
+      const earthItem = sceneContextRef.current.planetMeshes.find((m) => m.planet.id === 'earth');
+      if (earthItem) {
+        sceneContextRef.current.targetedMesh = earthItem.body;
+      }
+    }
+
+    let alt = 1200;
+    const altInterval = setInterval(() => {
+      alt = Math.max(10, Math.floor(alt * 0.62));
+      setDiveAltitude(alt);
+    }, 70);
+
+    // Stage 1: Plunge towards Earth surface in 3D
+    setTimeout(() => {
+      setDiveStage('cloud_burst');
+    }, 600);
+
+    // Stage 2: Penetrate cloud layer, reveal Google Maps Satellite
+    setTimeout(() => {
+      clearInterval(altInterval);
+      setDiveAltitude(10);
+      setViewMode('maps');
+      setDiveStage('cloud_dissolve');
+    }, 1050);
+
+    // Stage 3: Fully clear transition overlay
+    setTimeout(() => {
+      setDiveStage('idle');
+      setIsDivingToMaps(false);
+      isDivingRef.current = false;
+    }, 1800);
+  };
+
+  const handleReturnFromMaps = () => {
+    isDivingRef.current = false;
+    setIsDivingToMaps(false);
+    setDiveStage('idle');
+    setViewMode('space');
+
+    if (sceneContextRef.current) {
+      const earthItem = sceneContextRef.current.planetMeshes.find((m) => m.planet.id === 'earth');
+      if (earthItem) {
+        sceneContextRef.current.targetedMesh = earthItem.body;
+        sceneContextRef.current.spherical.radius = 2.85;
+        sceneContextRef.current.spherical.theta = 0.52;
+        sceneContextRef.current.spherical.phi = 1.35;
+        setIsEarthFocused(true);
+        setSelectedPlanet(earthItem.planet);
+      } else {
+        sceneContextRef.current.targetedMesh = null;
+        sceneContextRef.current.spherical.radius = 75;
+      }
+
+      if (mountRef.current) {
+        const w = mountRef.current.clientWidth || window.innerWidth;
+        const h = mountRef.current.clientHeight || window.innerHeight;
+        if (w > 0 && h > 0) {
+          sceneContextRef.current.camera.aspect = w / h;
+          sceneContextRef.current.camera.updateProjectionMatrix();
+          sceneContextRef.current.renderer.setSize(w, h);
+        }
+      }
+
+      sceneContextRef.current.renderer.render(
+        sceneContextRef.current.scene,
+        sceneContextRef.current.camera
+      );
+    }
+  };
 
   const earthCloudsRef = useRef<THREE.Mesh | null>(null);
   const earthAtmoRef = useRef<THREE.ShaderMaterial | null>(null);
@@ -634,11 +724,14 @@ export default function SolarSystemInteractiveGame() {
     scene.background = new THREE.Color(0x020409);
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.02, 5000);
-    camera.position.set(0, 32, 90);
+    camera.position.set(0, 24, 75);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
@@ -648,6 +741,7 @@ export default function SolarSystemInteractiveGame() {
     // Cosmic Deep Space Starfield & Galaxy Sphere
     const bgGeo = new THREE.SphereGeometry(1500, 32, 32);
     const bgTex = textureLoader.load('/textures/planets/galaxy_starfield.png');
+    bgTex.colorSpace = THREE.SRGBColorSpace;
     bgTex.wrapS = THREE.RepeatWrapping;
     bgTex.wrapT = THREE.RepeatWrapping;
     bgTex.repeat.set(4, 2);
@@ -660,7 +754,7 @@ export default function SolarSystemInteractiveGame() {
 
     // Dynamic Starfield Points
     const starGeo = new THREE.BufferGeometry();
-    const starCount = 3500;
+    const starCount = 4000;
     const starPos = new Float32Array(starCount * 3);
     const starCols = new Float32Array(starCount * 3);
     for (let i = 0; i < starCount * 3; i += 3) {
@@ -670,57 +764,71 @@ export default function SolarSystemInteractiveGame() {
 
       const r = Math.random();
       if (r > 0.8) {
-        starCols[i] = 0.45; starCols[i + 1] = 0.8; starCols[i + 2] = 1.0;
+        starCols[i] = 0.55; starCols[i + 1] = 0.85; starCols[i + 2] = 1.0;
       } else if (r > 0.6) {
-        starCols[i] = 1.0; starCols[i + 1] = 0.8; starCols[i + 2] = 0.45;
+        starCols[i] = 1.0; starCols[i + 1] = 0.85; starCols[i + 2] = 0.55;
       } else {
-        starCols[i] = 0.95; starCols[i + 1] = 0.95; starCols[i + 2] = 1.0;
+        starCols[i] = 0.98; starCols[i + 1] = 0.98; starCols[i + 2] = 1.0;
       }
     }
     starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
     starGeo.setAttribute('color', new THREE.BufferAttribute(starCols, 3));
-    const starField = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 1.2, vertexColors: true, transparent: true, opacity: 0.8 }));
+    const starField = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 1.25, vertexColors: true, transparent: true, opacity: 0.85 }));
     scene.add(starField);
 
-    // Ambient space illumination
-    const ambientLight = new THREE.AmbientLight(0x0a101d, 1.4);
+    // Realistic Deep Space Ambient Illumination (High Contrast)
+    const ambientLight = new THREE.AmbientLight(0x060c18, 0.45);
     scene.add(ambientLight);
 
-    // 1. THE SUN: Center Physical Point Light
-    const sunPointLight = new THREE.PointLight(0xfffbeb, 4.5, 800, 0.3);
+    // 1. THE SUN: Real Radiant Star & Center Physical Point Light
+    const sunPointLight = new THREE.PointLight(0xfffef0, 5.5, 1500, 0.15);
     sunPointLight.position.set(0, 0, 0);
     scene.add(sunPointLight);
 
     const sunGeo = new THREE.SphereGeometry(3.9, 64, 64);
     const sunTex = textureLoader.load('/textures/planets/sun.jpg');
+    sunTex.colorSpace = THREE.SRGBColorSpace;
     const sunMat = new THREE.MeshBasicMaterial({ map: sunTex });
     const sunMesh = new THREE.Mesh(sunGeo, sunMat);
     scene.add(sunMesh);
 
-    // Sun Corona Plasma Flare Shell
-    const coronaGeo = new THREE.SphereGeometry(4.55, 32, 32);
+    // Sun Inner White-Hot Radiant Flare Shell
+    const innerCoronaGeo = new THREE.SphereGeometry(4.2, 32, 32);
+    const innerCoronaMat = new THREE.MeshBasicMaterial({
+      color: 0xfffdf0,
+      transparent: true,
+      opacity: 0.75,
+      side: THREE.BackSide,
+      blending: THREE.AdditiveBlending,
+    });
+    const innerCoronaMesh = new THREE.Mesh(innerCoronaGeo, innerCoronaMat);
+    scene.add(innerCoronaMesh);
+
+    // Sun Outer Turbulent Plasma Flare Shell
+    const coronaGeo = new THREE.SphereGeometry(4.8, 32, 32);
     const coronaMat = new THREE.MeshBasicMaterial({
       color: 0xf59e0b,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.38,
       side: THREE.BackSide,
       blending: THREE.AdditiveBlending,
     });
     const coronaMesh = new THREE.Mesh(coronaGeo, coronaMat);
     scene.add(coronaMesh);
 
-    // Solar Flare Glow Sprite on the Sun (creates cinematic sunrise glow on the horizon)
+    // Dynamic Blinding Lens Flare Halo on the Sun
     const flareCanvas = document.createElement('canvas');
-    flareCanvas.width = 128;
-    flareCanvas.height = 128;
+    flareCanvas.width = 256;
+    flareCanvas.height = 256;
     const flareCtx = flareCanvas.getContext('2d')!;
-    const grad = flareCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    const grad = flareCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
     grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
-    grad.addColorStop(0.15, 'rgba(254, 240, 138, 0.9)');
-    grad.addColorStop(0.4, 'rgba(56, 189, 248, 0.45)');
+    grad.addColorStop(0.12, 'rgba(255, 248, 220, 0.95)');
+    grad.addColorStop(0.3, 'rgba(245, 158, 11, 0.55)');
+    grad.addColorStop(0.65, 'rgba(56, 189, 248, 0.18)');
     grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
     flareCtx.fillStyle = grad;
-    flareCtx.fillRect(0, 0, 128, 128);
+    flareCtx.fillRect(0, 0, 256, 256);
     const flareTex = new THREE.CanvasTexture(flareCanvas);
     const sunFlareMat = new THREE.SpriteMaterial({
       map: flareTex,
@@ -730,14 +838,17 @@ export default function SolarSystemInteractiveGame() {
       depthWrite: false,
     });
     const sunFlareSprite = new THREE.Sprite(sunFlareMat);
-    sunFlareSprite.scale.set(16, 16, 1);
+    sunFlareSprite.scale.set(24, 24, 1);
     sunMesh.add(sunFlareSprite);
 
     // 2. REAL EARTH WITH TRUE NASA 4K BLUE MARBLE & BLACK MARBLE SHADER
     const earthDayTex = textureLoader.load('/textures/planets/earth_day_4k.jpg');
+    earthDayTex.colorSpace = THREE.SRGBColorSpace;
     const earthNightTex = textureLoader.load('/textures/planets/earth_night_4k.jpg');
+    earthNightTex.colorSpace = THREE.SRGBColorSpace;
     const earthSpecTex = textureLoader.load('/textures/planets/earth_specular.jpg');
     const earthCloudsTex = textureLoader.load('/textures/planets/earth_clouds.png');
+    earthCloudsTex.colorSpace = THREE.SRGBColorSpace;
 
     const earthShaderMaterial = new THREE.ShaderMaterial({
       uniforms: {
@@ -894,37 +1005,9 @@ export default function SolarSystemInteractiveGame() {
         tiltGroup.add(atmoMesh);
         earthAtmoRef.current = atmoMat;
 
-        // Add 3D Country Markers on Earth (Clean, subtle surface beacons with depth test enabled)
-        REAL_WORLD_COUNTRIES.forEach((c) => {
-          const mGroup = new THREE.Group();
-          const isKh = c.id === 'khm';
-
-          const dot = new THREE.Mesh(
-            new THREE.SphereGeometry(0.018, 12, 12),
-            new THREE.MeshBasicMaterial({ color: isKh ? 0x38bdf8 : 0x94a3b8, depthTest: true })
-          );
-          const ring = new THREE.Mesh(
-            new THREE.RingGeometry(0.022, 0.045, 16),
-            new THREE.MeshBasicMaterial({
-              color: isKh ? 0x38bdf8 : 0x64748b,
-              side: THREE.DoubleSide,
-              transparent: true,
-              opacity: 0.75,
-              depthTest: true,
-            })
-          );
-          ring.rotation.x = Math.PI / 2;
-          mGroup.add(dot);
-          mGroup.add(ring);
-
-          const pos = latLngToVector3(c.lat, c.lng, planet.sizeRadius + 0.008);
-          mGroup.position.copy(pos);
-          body.add(mGroup);
-          countryMarkers.push({ country: c, marker: mGroup });
-        });
-
-        // GPS User Marker
+        // GPS User Marker (Subtle beacon visible only on pinpoint)
         userPinGroup = new THREE.Group();
+        userPinGroup.visible = false;
         const pinDot = new THREE.Mesh(new THREE.SphereGeometry(0.024, 16, 16), new THREE.MeshBasicMaterial({ color: 0x10b981, depthTest: true }));
         const pinRadar = new THREE.Mesh(new THREE.RingGeometry(0.035, 0.075, 20), new THREE.MeshBasicMaterial({ color: 0x10b981, side: THREE.DoubleSide, transparent: true, opacity: 0.9, depthTest: true }));
         pinRadar.rotation.x = Math.PI / 2;
@@ -942,6 +1025,7 @@ export default function SolarSystemInteractiveGame() {
         tiltGroup.add(moonPivot);
         const moonGeo = new THREE.SphereGeometry(0.27, 32, 32);
         const moonTex = textureLoader.load('/textures/planets/moon_1k.jpg');
+        moonTex.colorSpace = THREE.SRGBColorSpace;
         const moonMat = new THREE.MeshStandardMaterial({
           map: moonTex,
           roughness: 0.92,
@@ -953,6 +1037,7 @@ export default function SolarSystemInteractiveGame() {
       } else {
         const pGeo = new THREE.SphereGeometry(planet.sizeRadius, 64, 64);
         const pTex = textureLoader.load(planet.textureUrl);
+        pTex.colorSpace = THREE.SRGBColorSpace;
         const pMat = new THREE.MeshStandardMaterial({
           map: pTex,
           roughness: 0.75,
@@ -977,6 +1062,7 @@ export default function SolarSystemInteractiveGame() {
           }
           
           const ringTex = textureLoader.load('/textures/planets/saturn_ring.png');
+          ringTex.colorSpace = THREE.SRGBColorSpace;
           const ringMat = new THREE.MeshStandardMaterial({
             map: ringTex,
             side: THREE.DoubleSide,
@@ -1060,9 +1146,9 @@ export default function SolarSystemInteractiveGame() {
       const isTargetingBody = sceneContextRef.current.targetedMesh !== null;
       const newRadius = currentR + delta;
 
-      // When zooming close to Earth surface, seamlessly transition directly into Google Maps Satellite
-      if (isTargetingBody && newRadius <= 1.22) {
-        setViewMode('maps');
+      // When zooming close to Earth surface, seamlessly trigger cinematic 3D dive into Google Maps
+      if (isTargetingBody && newRadius <= 1.22 && !isDivingRef.current) {
+        triggerCinematicDiveToMaps(mapsTarget.lat, mapsTarget.lng, mapsTarget.zoom);
         return;
       }
 
@@ -1088,7 +1174,7 @@ export default function SolarSystemInteractiveGame() {
       if (sceneContextRef.current.earthMesh) {
         const earthHits = raycaster.intersectObject(sceneContextRef.current.earthMesh);
         if (earthHits.length > 0) {
-          setViewMode('maps');
+          triggerCinematicDiveToMaps(mapsTarget.lat, mapsTarget.lng, mapsTarget.zoom);
         }
       }
     };
@@ -1117,6 +1203,10 @@ export default function SolarSystemInteractiveGame() {
       for (const item of sceneContextRef.current.planetMeshes) {
         const hits = raycaster.intersectObject(item.body);
         if (hits.length > 0) {
+          if (item.planet.id === 'earth' && isEarthFocusedRef.current) {
+            triggerCinematicDiveToMaps(mapsTarget.lat, mapsTarget.lng, mapsTarget.zoom);
+            return;
+          }
           handleSelectPlanet(item.planet);
           return;
         }
@@ -1236,11 +1326,17 @@ export default function SolarSystemInteractiveGame() {
           targetWorldPos.set(0, 0, 0);
         }
 
+        // Rapid camera dive towards Earth during re-entry animation
+        if (isDivingRef.current) {
+          spherical.radius = THREE.MathUtils.lerp(spherical.radius, 1.025, 0.14);
+        }
+
         const camX = targetWorldPos.x + spherical.radius * Math.sin(spherical.phi) * Math.sin(spherical.theta);
         const camY = targetWorldPos.y + spherical.radius * Math.cos(spherical.phi);
         const camZ = targetWorldPos.z + spherical.radius * Math.sin(spherical.phi) * Math.cos(spherical.theta);
 
-        camera.position.lerp(new THREE.Vector3(camX, camY, camZ), 0.06);
+        const camLerp = isDivingRef.current ? 0.15 : 0.06;
+        camera.position.lerp(new THREE.Vector3(camX, camY, camZ), camLerp);
         camera.lookAt(targetWorldPos);
 
         renderer.render(scene, camera);
@@ -1424,467 +1520,264 @@ export default function SolarSystemInteractiveGame() {
     );
   }, [countrySearch]);
 
-  // Seamless switch to Google Maps Satellite View
-  if (viewMode === 'maps') {
-    return (
-      <GoogleMapsEarthExplorer
-        initialLat={mapsTarget.lat}
-        initialLng={mapsTarget.lng}
-        initialZoom={mapsTarget.zoom}
-        onReturnToSpace={() => setViewMode('space')}
-      />
-    );
-  }
-
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-space-950 select-none font-mono text-xs">
-      {/* 3D WebGL Canvas Layer (Full Viewport 100vw x 100vh) */}
-      <div ref={mountRef} className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing" />
+      {/* 3D WebGL Canvas Layer (Full Viewport 100vw x 100vh) - Persistently Mounted */}
+      <div
+        ref={mountRef}
+        className={`absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing transition-opacity duration-300 ${
+          viewMode === 'maps' ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
+        }`}
+      />
 
-      {/* Top Floating Glassmorphic HUD Bar */}
-      <div className="absolute top-4 inset-x-4 z-20 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
-        {/* Brand */}
-        <div className="pointer-events-auto flex items-center gap-2.5 bg-space-950/85 backdrop-blur-md px-3.5 py-2 rounded-lg border border-space-700/80 shadow-lg">
-          <div className="w-6 h-6 rounded bg-space-800 border border-space-600 flex items-center justify-center text-aeroblue">
-            <Sun className="w-3.5 h-3.5 text-aeroamber" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-              <span>AEROVEX</span>
-              <span className="text-[9px] px-1.5 py-0.2 bg-aeroblue/15 text-aeroblue rounded border border-aeroblue/30">
-                REAL PHYSICS ENGINE
-              </span>
-            </div>
-            <div className="text-[10px] text-space-400">100% AUTHENTIC KEPLERIAN ORBITS & DAY/NIGHT</div>
-          </div>
-        </div>
+      {/* Google Maps Satellite View Layer */}
+      {viewMode === 'maps' && (
+        <div className="absolute inset-0 z-40 w-full h-full animate-in fade-in duration-300">
+          <GoogleMapsEarthExplorer
+            initialLat={mapsTarget.lat}
+            initialLng={mapsTarget.lng}
+            initialZoom={mapsTarget.zoom}
+            isEnteringFromSpace={true}
+            onReturnToSpace={handleReturnFromMaps}
+          />
 
-        {/* Orbit Simulation Controls */}
-        <div className="pointer-events-auto flex items-center gap-1.5 bg-space-950/85 backdrop-blur-md px-3 py-1.5 rounded-lg border border-space-700/80 text-xs shadow-lg">
-          <button
-            onClick={() => setIsPaused(!isPaused)}
-            className="p-1.5 rounded hover:bg-space-800 text-space-300 hover:text-white transition-colors"
-            title={isPaused ? 'Resume Simulation' : 'Pause Simulation'}
-          >
-            {isPaused ? <Play className="w-4 h-4 text-aerogreen" /> : <Pause className="w-4 h-4 text-aeroamber" />}
-          </button>
-
-          <div className="h-4 w-px bg-space-800 mx-1" />
-
-          {/* Real-Time UTC Live Sync Toggle */}
-          <button
-            onClick={() => setUseRealTimeSync(!useRealTimeSync)}
-            className={`px-2.5 py-1 rounded text-[11px] transition-all flex items-center gap-1.5 ${
-              useRealTimeSync
-                ? 'bg-aerogreen/20 text-aerogreen border border-aerogreen/40 font-bold'
-                : 'text-space-400 hover:text-white hover:bg-space-800'
-            }`}
-            title="Synchronize Earth rotation directly with live UTC time"
-          >
-            <Clock className="w-3 h-3" />
-            <span>{useRealTimeSync ? 'LIVE UTC SYNC' : 'MANUAL SPEED'}</span>
-          </button>
-
-          <div className="h-4 w-px bg-space-800 mx-1" />
-
-          {[1, 5, 20].map((spd) => (
-            <button
-              key={spd}
-              onClick={() => {
-                setSimSpeed(spd);
-                setUseRealTimeSync(false);
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] transition-colors ${
-                !useRealTimeSync && simSpeed === spd ? 'bg-aeroblue text-space-950 font-bold' : 'text-space-400 hover:text-white'
-              }`}
-            >
-              {spd}x
-            </button>
-          ))}
-
-          <div className="h-4 w-px bg-space-800 mx-1" />
-
-          <button
-            onClick={() => setShowOrbits(!showOrbits)}
-            className={`px-2.5 py-1 rounded text-[11px] transition-colors ${
-              showOrbits ? 'bg-space-800 text-aeroblue border border-space-700' : 'text-space-500 hover:text-white'
-            }`}
-            title="Toggle Orbital Rings"
-          >
-            TRAILS
-          </button>
-
-          <button
-            onClick={handleResetView}
-            className="p-1.5 rounded hover:bg-space-800 text-space-300 hover:text-white transition-colors ml-1"
-            title="Full Solar System"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Quick Perspective Views: Google Maps Satellite, Astronaut Horizon Sunrise, Global Earth, Cambodia, GPS */}
-      <div className="absolute top-16 inset-x-4 z-20 flex justify-center pointer-events-none">
-        <div className="pointer-events-auto flex items-center gap-1.5 bg-space-950/90 backdrop-blur-md p-1.5 rounded-xl border border-space-700/80 shadow-2xl overflow-x-auto text-xs">
-          <button
-            onClick={() => {
-              setMapsTarget({
-                lat: selectedCountry.lat,
-                lng: selectedCountry.lng,
-                zoom: selectedCountry.id === 'khm' ? 8 : 6,
-              });
-              setViewMode('maps');
-            }}
-            className="px-3 py-1.5 rounded-lg bg-aeroblue hover:bg-aeroblue-light text-space-950 font-bold transition-all flex items-center gap-1.5 shadow-md shadow-aeroblue/25 whitespace-nowrap cursor-pointer"
-            title="Explore Google Maps Satellite View with real country borders, provinces & roads"
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span>GOOGLE MAPS SATELLITE</span>
-          </button>
-
-          <button
-            onClick={handleCinematicHorizonView}
-            className="px-3 py-1.5 rounded-lg bg-aeroamber/20 hover:bg-aeroamber/30 text-aeroamber-light border border-aeroamber/40 font-bold transition-all flex items-center gap-1.5 shadow-sm whitespace-nowrap"
-            title="Astronaut Horizon Sunrise Perspective (View from Orbit)"
-          >
-            <Flame className="w-3.5 h-3.5 text-aeroamber" />
-            <span>LEO SUNRISE HORIZON</span>
-          </button>
-
-          <button
-            onClick={handleGlobalEarthView}
-            className="px-3 py-1.5 rounded-lg bg-space-850 hover:bg-space-800 text-aeroblue border border-aeroblue/40 font-bold transition-all flex items-center gap-1.5 whitespace-nowrap"
-            title="High Orbit Astronaut Globe View"
-          >
-            <Globe className="w-3.5 h-3.5 text-aeroblue" />
-            <span>GLOBAL EARTH</span>
-          </button>
-
-          <button
-            onClick={() => handleSelectCountry(REAL_WORLD_COUNTRIES[0])}
-            className="px-3 py-1.5 rounded-lg bg-space-850 hover:bg-space-800 text-white border border-space-700 font-bold transition-all flex items-center gap-1.5 whitespace-nowrap"
-            title="Zoom into Cambodia (Angkor & Phnom Penh)"
-          >
-            <MapPin className="w-3.5 h-3.5 text-aeroblue" />
-            <span>CAMBODIA</span>
-          </button>
-
-          <button
-            onClick={handleLocateMyPosition}
-            className="px-3 py-1.5 rounded-lg bg-aerogreen/20 hover:bg-aerogreen/30 text-aerogreen border border-aerogreen/40 font-bold transition-all flex items-center gap-1.5 shadow-sm whitespace-nowrap"
-            title="Pinpoint my live GPS location on Earth"
-          >
-            <Navigation className="w-3.5 h-3.5 text-aerogreen animate-pulse" />
-            <span>PINPOINT MY GPS</span>
-          </button>
-
-          <button
-            onClick={handleResetView}
-            className="px-3 py-1.5 rounded-lg bg-space-850 hover:bg-space-800 text-space-300 hover:text-white border border-space-700 transition-all flex items-center gap-1.5 whitespace-nowrap"
-            title="Full Solar System View"
-          >
-            <Compass className="w-3.5 h-3.5 text-space-400" />
-            <span>SOLAR SYSTEM</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Bottom Planet Quick-Selector Bar */}
-      <div className="absolute bottom-5 inset-x-4 z-20 flex justify-center pointer-events-none">
-        <div className="pointer-events-auto flex items-center gap-1 bg-space-950/90 backdrop-blur-md p-1.5 rounded-xl border border-space-700/80 shadow-2xl overflow-x-auto max-w-full">
-          <button
-            onClick={handleResetView}
-            className={`px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 ${
-              selectedPlanet === null && !isEarthFocused
-                ? 'bg-aeroamber text-space-950 font-bold shadow-md shadow-aeroamber/20'
-                : 'text-space-300 hover:text-white hover:bg-space-850'
-            }`}
-          >
-            <Sun className="w-3.5 h-3.5 text-aeroamber" />
-            <span>THE SUN</span>
-          </button>
-
-          {REAL_PLANETS_PHYSICS.map((planet) => {
-            const isSelected = selectedPlanet?.id === planet.id;
-
-            return (
-              <button
-                key={planet.id}
-                onClick={() => handleSelectPlanet(planet)}
-                className={`px-2.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  isSelected
-                    ? 'bg-aeroblue text-space-950 font-bold shadow-md shadow-aeroblue/20'
-                    : 'text-space-400 hover:text-white hover:bg-space-850'
-                }`}
-              >
-                <span
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: planet.colorHex }}
-                />
-                <span>{planet.name.split(' (')[0]}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Floating Day/Night Live Status HUD (When Earth is Focused) */}
-      {isEarthFocused && (
-        <div className="absolute top-28 left-4 z-20 pointer-events-none max-w-xs">
-          <div className="bg-space-950/85 backdrop-blur-md p-3.5 rounded-lg border border-space-700/80 space-y-2 shadow-lg">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-aerogreen animate-pulse" />
-              <span className="text-white font-bold text-xs uppercase">
-                REAL DAY & NIGHT TERMINATOR
-              </span>
-            </div>
-            <p className="text-[11px] text-space-300 leading-relaxed">
-              Half of Earth is illuminated in real daylight, while the dark night hemisphere reveals glowing golden city
-              lights (NASA Black Marble).
-            </p>
-            <div className="p-2 bg-space-900 rounded border border-space-800 text-[10px] space-y-1">
-              <div className="flex justify-between">
-                <span className="text-space-400">FOCUS TARGET:</span>
-                <span className="text-white font-bold">{selectedCountry.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-space-400">SOLAR ILLUMINATION:</span>
-                <span className={targetSolarStatus === 'day' ? 'text-aeroamber font-bold' : targetSolarStatus === 'night' ? 'text-aeroblue font-bold' : 'text-aerocyan font-bold'}>
-                  {targetSolarStatus === 'day' ? 'DAYTIME (NASA BLUE MARBLE)' : targetSolarStatus === 'night' ? 'NIGHTTIME (CITY LIGHTS GLOW)' : 'TERMINATOR (TWILIGHT DAWN/DUSK)'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-space-400">PERSPECTIVE:</span>
-                <span className="text-aerocyan font-bold">OUTER SPACE (ORBITAL PERSPECTIVE)</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-space-400">LIVE UTC ASTRONOMICAL TIME:</span>
-                <span className="text-space-200">{liveUtcString || 'Synchronized'}</span>
+          {/* Stratospheric Cloud Dissolve on Arrival */}
+          {isDivingToMaps && (
+            <div className="absolute inset-0 z-50 pointer-events-none flex flex-col items-center justify-center overflow-hidden">
+              <div className="absolute inset-0 animate-cloud-dive bg-gradient-radial from-white/90 via-aeroblue/40 to-space-950/60" />
+              <div className="relative z-10 text-center font-mono space-y-1 bg-space-950/80 px-6 py-2.5 rounded-2xl border border-aeroblue/40 backdrop-blur-md shadow-2xl">
+                <div className="text-xs font-bold text-white tracking-widest uppercase">
+                  STRATOSPHERIC BREAKTHROUGH // SATELLITE TILES ACTIVE
+                </div>
+                <div className="text-[10px] text-aeroblue-light font-bold">ALTITUDE: 10 KM &bull; TERRESTRIAL GRID LOCKED</div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
-      {/* Side Drawer: Detailed Planet & Country Telemetry (Like Google Maps) */}
-      {selectedPlanet && (
-        <div className="absolute top-28 right-4 bottom-20 w-full max-w-md z-30 flex flex-col pointer-events-auto">
-          <div className="hud-panel p-5 rounded-xl border border-space-700/80 bg-space-900/95 backdrop-blur-xl shadow-2xl flex-1 flex flex-col justify-between overflow-hidden">
-            {/* Header */}
-            <div className="border-b border-space-800 pb-3 flex items-start justify-between">
-              <div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-aeroblue/15 text-aeroblue border border-aeroblue/30 font-bold uppercase">
-                  {selectedPlanet.type}
-                </span>
-                <h2 className="text-xl font-bold text-white mt-1.5 tracking-tight">{selectedPlanet.name}</h2>
-                <div className="text-[11px] text-space-400">
-                  {selectedPlanet.orbitRadiusAU} AU &bull; Axial Tilt: {selectedPlanet.axialTiltDeg}° &bull; {selectedPlanet.moonsCount} Moons
-                </div>
-              </div>
-
-              <button
-                onClick={() => {
-                  setSelectedPlanet(null);
-                  setIsEarthFocused(false);
-                }}
-                className="p-1.5 rounded text-space-400 hover:text-white hover:bg-space-800 transition-colors"
-                title="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
+      {/* 3D Space View HUD Controls */}
+      {viewMode === 'space' && (
+        <>
+          {/* Top Floating Minimalist Navigation Bar (Single Slim Row) */}
+          <div className="absolute top-4 inset-x-4 z-20 flex items-center justify-between pointer-events-none">
+            {/* Brand */}
+            <div className="pointer-events-auto flex items-center gap-2 bg-space-950/80 backdrop-blur-xl px-4 py-2 rounded-full border border-space-800 shadow-xl">
+              <div className="w-2 h-2 rounded-full bg-aeroblue animate-pulse" />
+              <span className="text-xs font-bold text-white tracking-widest uppercase">AEROVEX</span>
+              <span className="text-[10px] text-space-400">SOLAR SYSTEM</span>
             </div>
 
-            {/* Content Body */}
-            <div className="overflow-y-auto space-y-4 pr-1 my-3 text-xs">
-              {/* Physical Parameters */}
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div className="p-2.5 bg-space-950/80 rounded border border-space-800">
-                  <span className="text-space-500 block text-[10px]">DIAMETER</span>
-                  <span className="text-white font-bold">{selectedPlanet.diameterKm.toLocaleString()} km</span>
-                </div>
-
-                <div className="p-2.5 bg-space-950/80 rounded border border-space-800">
-                  <span className="text-space-500 block text-[10px]">ORBITAL PERIOD (YEAR)</span>
-                  <span className="text-white font-bold">{selectedPlanet.realPeriodDays} Days</span>
-                </div>
-
-                <div className="p-2.5 bg-space-950/80 rounded border border-space-800">
-                  <span className="text-space-500 block text-[10px]">SIDEREAL DAY LENGTH</span>
-                  <span className="text-white font-bold">{selectedPlanet.rotationPeriodHours} Hours</span>
-                </div>
-
-                <div className="p-2.5 bg-space-950/80 rounded border border-space-800">
-                  <span className="text-space-500 block text-[10px]">SURFACE GRAVITY</span>
-                  <span className="text-aeroblue-light font-bold">{selectedPlanet.surfaceGravityMs2} m/s²</span>
-                </div>
-
-                <div className="p-2.5 bg-space-950/80 rounded border border-space-800">
-                  <span className="text-space-500 block text-[10px]">MASS (ACTUAL)</span>
-                  <span className="text-white font-bold">{selectedPlanet.massKg}</span>
-                </div>
-
-                <div className="p-2.5 bg-space-950/80 rounded border border-space-800">
-                  <span className="text-space-500 block text-[10px]">ESCAPE VELOCITY</span>
-                  <span className="text-white font-bold">{selectedPlanet.escapeVelocityKmS} km/s</span>
-                </div>
-              </div>
-
-              {/* SPECIAL EARTH FEATURE: GOOGLE MAPS STYLE COUNTRY & GPS EXPLORER */}
-              {selectedPlanet.id === 'earth' && (
-                <div className="p-4 bg-space-950/90 rounded-lg border border-aeroblue/40 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-white font-bold text-xs uppercase">
-                      <Globe className="w-4 h-4 text-aeroblue" />
-                      <span>TERRESTRIAL COUNTRY EXPLORER (MAPS MODE)</span>
-                    </div>
-                  </div>
-
-                  {/* Enter Fullscreen Google Maps Satellite View */}
-                  <button
-                    onClick={() => {
-                      setMapsTarget({
-                        lat: selectedCountry.lat,
-                        lng: selectedCountry.lng,
-                        zoom: selectedCountry.id === 'khm' ? 8 : 6,
-                      });
-                      setViewMode('maps');
-                    }}
-                    className="w-full py-2.5 px-3 rounded-lg bg-aeroblue hover:bg-aeroblue-light text-space-950 font-bold transition-all flex items-center justify-center gap-2 text-xs shadow-md shadow-aeroblue/25 cursor-pointer"
-                  >
-                    <Globe className="w-4 h-4" />
-                    <span>ZOOM INTO GOOGLE MAPS SATELLITE VIEW</span>
-                  </button>
-
-                  {/* Locate GPS Button */}
-                  <button
-                    onClick={handleLocateMyPosition}
-                    className="w-full py-2.5 px-3 rounded bg-aerogreen hover:bg-aerogreen-light text-space-950 font-bold transition-all flex items-center justify-center gap-2 text-xs shadow-sm"
-                  >
-                    <Navigation className="w-3.5 h-3.5" />
-                    <span>PINPOINT MY GPS POSITION ON GLOBE</span>
-                  </button>
-                  <div className="text-[10px] text-space-400 text-center">{locatingStatus}</div>
-
-                  {/* Country Search Bar */}
-                  <div className="relative pt-1 border-t border-space-850">
-                    <Search className="w-3.5 h-3.5 text-space-500 absolute left-2.5 top-3.5" />
-                    <input
-                      type="text"
-                      placeholder="Search country (e.g. Cambodia, France, Japan)..."
-                      value={countrySearch}
-                      onChange={(e) => setCountrySearch(e.target.value)}
-                      className="w-full bg-space-900 border border-space-700 rounded pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-space-500 focus:outline-none focus:border-aeroblue"
-                    />
-                  </div>
-
-                  {/* Country Selectable List */}
-                  <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
-                    {filteredCountries.map((c) => {
-                      const isSelected = selectedCountry.id === c.id;
-
-                      return (
-                        <div
-                          key={c.id}
-                          onClick={() => handleSelectCountry(c)}
-                          className={`p-2 rounded cursor-pointer transition-colors flex items-center justify-between text-[11px] ${
-                            isSelected
-                              ? 'bg-space-800 text-aeroblue-light border border-aeroblue/60 font-bold'
-                              : 'bg-space-900/60 text-space-300 hover:text-white'
-                          }`}
-                        >
-                          <div>
-                            <div>{c.name}</div>
-                            <div className="text-[10px] text-space-500 font-normal">{c.capital}</div>
-                          </div>
-                          <span className="text-[10px] text-space-400">{c.lat}° N</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Selected Country Data Card */}
-                  <div className="p-3 bg-space-900 rounded border border-space-800 text-[11px] space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-white font-bold">{selectedCountry.name}</span>
-                      <span className="text-[10px] text-aeroblue">{selectedCountry.timezone}</span>
-                    </div>
-
-                    {/* Solar State on Target Country */}
-                    <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-space-950 border border-space-800 text-[10px]">
-                      {targetSolarStatus === 'day' && (
-                        <>
-                          <Sun className="w-3.5 h-3.5 text-aeroamber" />
-                          <span className="text-aeroamber font-bold">SOLAR POSITION: FULL DAYLIGHT (BLUE MARBLE)</span>
-                        </>
-                      )}
-                      {targetSolarStatus === 'night' && (
-                        <>
-                          <Moon className="w-3.5 h-3.5 text-aeroblue" />
-                          <span className="text-aeroblue font-bold">SOLAR POSITION: NIGHTTIME (NASA BLACK MARBLE)</span>
-                        </>
-                      )}
-                      {targetSolarStatus === 'twilight' && (
-                        <>
-                          <Sparkles className="w-3.5 h-3.5 text-aerocyan" />
-                          <span className="text-aerocyan font-bold">SOLAR POSITION: TERMINATOR LINE (DAWN / DUSK)</span>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="text-space-300 text-[10px] leading-relaxed">
-                      {selectedCountry.overview}
-                    </div>
-                    <div className="pt-1 border-t border-space-800 text-[10px] text-space-400">
-                      <div>Space Agency: <strong className="text-white">{selectedCountry.spaceAgency}</strong></div>
-                      <div>Key Sites: <strong className="text-space-300">{selectedCountry.majorSites}</strong></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Physical Highlights */}
-              <div className="space-y-2 pt-1 border-t border-space-800">
-                <span className="text-[10px] text-aeroamber font-bold uppercase tracking-wider block">
-                  PHYSICAL & ASTRODYNAMICAL PROPERTIES
-                </span>
-                <ul className="space-y-1.5 text-space-300 text-xs">
-                  {selectedPlanet.physicsHighlights.map((feat, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-aeroamber mt-1.5 flex-shrink-0" />
-                      <span className="leading-relaxed">{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Atmosphere Badges */}
-              <div className="space-y-1.5 pt-1 border-t border-space-800">
-                <span className="text-[10px] text-space-400 font-bold uppercase tracking-wider block">
-                  ATMOSPHERIC COMPOSITION
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedPlanet.atmosphere.map((gas, i) => (
-                    <span
-                      key={i}
-                      className="px-2 py-0.5 rounded bg-space-950 border border-space-800 text-space-300 text-[11px]"
-                    >
-                      {gas}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="pt-3 border-t border-space-800">
+            {/* Center Mode Switcher Pill */}
+            <div className="pointer-events-auto flex items-center gap-1 bg-space-950/80 backdrop-blur-xl p-1 rounded-full border border-space-800 shadow-xl">
               <button
                 onClick={handleResetView}
-                className="w-full py-2 bg-space-800 hover:bg-space-700 text-white rounded font-bold transition-colors text-xs flex items-center justify-center gap-1.5"
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  selectedPlanet === null
+                    ? 'bg-space-800 text-white shadow-sm'
+                    : 'text-space-400 hover:text-white'
+                }`}
+              >
+                <Sun className="w-3.5 h-3.5 text-aeroamber" />
+                <span>3D SOLAR SYSTEM</span>
+              </button>
+
+              <button
+                onClick={() => triggerCinematicDiveToMaps(12.5657, 104.991, 7)}
+                className="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 bg-aeroblue/15 hover:bg-aeroblue text-aeroblue-light hover:text-space-950 border border-aeroblue/30 cursor-pointer"
+                title="Open authentic Google Maps Satellite View with 3D zoom dive"
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>EARTH SATELLITE MAP</span>
+              </button>
+            </div>
+
+            {/* Right Minimal Controls Pill */}
+            <div className="pointer-events-auto flex items-center gap-1.5 bg-space-950/80 backdrop-blur-xl px-2.5 py-1.5 rounded-full border border-space-800 shadow-xl text-xs">
+              <button
+                onClick={() => setIsPaused(!isPaused)}
+                className="p-1.5 rounded-full hover:bg-space-800 text-space-300 hover:text-white transition-colors"
+                title={isPaused ? 'Resume Simulation' : 'Pause Simulation'}
+              >
+                {isPaused ? <Play className="w-3.5 h-3.5 text-aerogreen" /> : <Pause className="w-3.5 h-3.5 text-aeroamber" />}
+              </button>
+
+              <div className="h-3 w-px bg-space-800" />
+
+              <button
+                onClick={() => setShowOrbits(!showOrbits)}
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-colors ${
+                  showOrbits ? 'bg-space-800 text-aeroblue' : 'text-space-500 hover:text-white'
+                }`}
+                title="Toggle Orbital Rings"
+              >
+                TRAILS
+              </button>
+
+              <div className="h-3 w-px bg-space-800" />
+
+              <button
+                onClick={handleResetView}
+                className="p-1.5 rounded-full hover:bg-space-800 text-space-300 hover:text-white transition-colors"
+                title="Reset View"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>RETURN TO SOLAR SYSTEM VIEW</span>
               </button>
+            </div>
+          </div>
+
+          {/* Floating Compact Planet Telemetry Card on Right */}
+          {selectedPlanet && (
+            <div className="absolute top-20 right-5 z-30 pointer-events-auto w-80 animate-in fade-in duration-200">
+              <div className="bg-space-950/85 backdrop-blur-xl p-4 rounded-2xl border border-space-800/90 shadow-2xl space-y-3 font-mono text-xs text-white">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-aeroblue/15 text-aeroblue border border-aeroblue/30 font-bold uppercase tracking-wider">
+                      {selectedPlanet.type.split(' (')[0]}
+                    </span>
+                    <h2 className="text-lg font-bold text-white mt-1 tracking-tight">{selectedPlanet.name.split(' (')[0]}</h2>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedPlanet(null);
+                      setIsEarthFocused(false);
+                    }}
+                    className="p-1 rounded-full text-space-400 hover:text-white hover:bg-space-800 transition-colors"
+                    title="Close Card"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Compact 2x2 Grid */}
+                <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                  <div className="p-2 bg-space-900/70 rounded-xl border border-space-850">
+                    <span className="text-space-400 block text-[9px]">DIAMETER</span>
+                    <span className="text-white font-bold">{selectedPlanet.diameterKm.toLocaleString()} km</span>
+                  </div>
+                  <div className="p-2 bg-space-900/70 rounded-xl border border-space-850">
+                    <span className="text-space-400 block text-[9px]">SOLAR DISTANCE</span>
+                    <span className="text-white font-bold">{selectedPlanet.orbitRadiusAU} AU</span>
+                  </div>
+                  <div className="p-2 bg-space-900/70 rounded-xl border border-space-850">
+                    <span className="text-space-400 block text-[9px]">DAY LENGTH</span>
+                    <span className="text-white font-bold">{selectedPlanet.rotationPeriodHours}h</span>
+                  </div>
+                  <div className="p-2 bg-space-900/70 rounded-xl border border-space-850">
+                    <span className="text-space-400 block text-[9px]">MEAN TEMP</span>
+                    <span className="text-white font-bold">{selectedPlanet.meanTempC}</span>
+                  </div>
+                </div>
+
+                {/* Earth Specific: Single Direct Action into Google Maps */}
+                {selectedPlanet.id === 'earth' ? (
+                  <div className="space-y-2 pt-1">
+                    <button
+                      onClick={() => triggerCinematicDiveToMaps(selectedCountry.lat, selectedCountry.lng, 7)}
+                      className="w-full py-2.5 px-3 rounded-xl bg-aeroblue hover:bg-aeroblue-light text-space-950 font-bold transition-all flex items-center justify-center gap-2 text-xs shadow-lg shadow-aeroblue/20 cursor-pointer"
+                    >
+                      <Globe className="w-4 h-4" />
+                      <span>VIEW IN GOOGLE MAPS</span>
+                    </button>
+
+                    <button
+                      onClick={handleLocateMyPosition}
+                      className="w-full py-2 px-3 rounded-xl bg-space-900 hover:bg-space-850 text-aerogreen border border-aerogreen/30 font-bold transition-all flex items-center justify-center gap-2 text-[11px] cursor-pointer"
+                    >
+                      <Navigation className="w-3.5 h-3.5 text-aerogreen" />
+                      <span>PINPOINT MY GPS LOCATION</span>
+                    </button>
+
+                    {userLocation && (
+                      <div className="text-[10px] text-space-400 text-center">{locatingStatus}</div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 pt-1 text-[11px] text-space-300">
+                    <div className="text-[10px] text-space-400 uppercase font-bold">ATMOSPHERE:</div>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedPlanet.atmosphere.slice(0, 3).map((gas, i) => (
+                        <span key={i} className="px-2 py-0.5 rounded-full bg-space-900 text-space-300 text-[10px] border border-space-800">
+                          {gas}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-space-400 leading-relaxed line-clamp-2 pt-1">
+                      {selectedPlanet.physicsHighlights[0]}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Bottom Planet Quick-Selector Bar (Ultra-Sleek Pill) */}
+          <div className="absolute bottom-4 inset-x-4 z-20 flex justify-center pointer-events-none">
+            <div className="pointer-events-auto flex items-center gap-1 bg-space-950/80 backdrop-blur-xl p-1.5 rounded-full border border-space-800 shadow-2xl overflow-x-auto max-w-full">
+              <button
+                onClick={handleResetView}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  selectedPlanet === null && !isEarthFocused
+                    ? 'bg-aeroamber text-space-950 shadow-sm'
+                    : 'text-space-400 hover:text-white'
+                }`}
+              >
+                <Sun className="w-3.5 h-3.5 text-aeroamber" />
+                <span>THE SUN</span>
+              </button>
+
+              {REAL_PLANETS_PHYSICS.map((planet) => {
+                const isSelected = selectedPlanet?.id === planet.id;
+
+                return (
+                  <button
+                    key={planet.id}
+                    onClick={() => handleSelectPlanet(planet)}
+                    className={`px-2.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                      isSelected
+                        ? 'bg-aeroblue text-space-950 shadow-sm'
+                        : 'text-space-400 hover:text-white'
+                    }`}
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: planet.colorHex }}
+                    />
+                    <span>{planet.name.split(' (')[0]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* 3D Atmospheric Re-Entry / Hyperspace Dive Overlay */}
+      {isDivingToMaps && (
+        <div className="absolute inset-0 z-50 pointer-events-none flex flex-col items-center justify-center overflow-hidden">
+          {/* Hyperspeed / Radial Warp Speed Streaks */}
+          <div className="absolute inset-0 animate-warp-speed opacity-80" />
+
+          {/* Cloud Penetration Flash */}
+          <div className="absolute inset-0 animate-cloud-dive bg-gradient-radial from-white/95 via-aeroblue/50 to-transparent" />
+
+          {/* Re-entry Heat / Rayleigh Glow */}
+          <div className="absolute inset-0 animate-reentry-flash" />
+
+          {/* Sleek Aerospace Re-entry HUD */}
+          <div className="relative z-10 text-center font-mono space-y-2 bg-space-950/85 px-8 py-4 rounded-2xl border border-aeroblue/50 backdrop-blur-xl shadow-2xl">
+            <div className="flex items-center justify-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-aerogreen animate-ping" />
+              <span className="text-xs font-bold text-white tracking-widest uppercase">
+                ORBITAL DE-ORBIT MANEUVER ENGAGED
+              </span>
+            </div>
+            <div className="text-2xl font-bold text-aeroblue tracking-tight">
+              ALTITUDE: {diveAltitude} KM
+            </div>
+            <div className="text-[10px] text-space-300 font-bold tracking-wider">
+              DIVING INTO GOOGLE MAPS TERRESTRIAL SATELLITE GRID
             </div>
           </div>
         </div>
