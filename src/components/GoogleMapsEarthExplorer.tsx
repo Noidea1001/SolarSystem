@@ -12,7 +12,11 @@ import {
   Globe,
   X,
   Compass,
+  Satellite,
+  Moon,
+  CloudRain,
 } from 'lucide-react';
+import { computeSolarTerminatorPolygon } from '../utils/ephemeris';
 
 interface CountryQuickLink {
   id: string;
@@ -71,6 +75,10 @@ export default function GoogleMapsEarthExplorer({
   const clickMarkerRef = useRef<any>(null);
   const searchMarkerRef = useRef<any>(null);
   const layerGroupRef = useRef<any>(null);
+  const issMarkerRef = useRef<any>(null);
+  const issPathRef = useRef<any>(null);
+  const terminatorPolygonRef = useRef<any>(null);
+  const weatherLayerRef = useRef<any>(null);
 
   const [activeLayer, setActiveLayer] = useState<'google-hybrid' | 'esri-satellite' | 'google-roads'>('google-hybrid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,6 +92,9 @@ export default function GoogleMapsEarthExplorer({
   const [inspectedPoint, setInspectedPoint] = useState<InspectedPoint | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isAscending, setIsAscending] = useState(false);
+  const [showTerminator, setShowTerminator] = useState(false);
+  const [showWeatherRadar, setShowWeatherRadar] = useState(false);
+  const [issCoords, setIssCoords] = useState<{ lat: number; lng: number; alt: number; vel: number } | null>(null);
 
   // Return to Space with smooth flyout animation
   const handleReturnToSpace = () => {
@@ -267,6 +278,146 @@ export default function GoogleMapsEarthExplorer({
       }
     };
   }, [initialLat, initialLng, initialZoom, isEnteringFromSpace]);
+
+  // Live ISS Orbital Satellite Tracker on Google Maps
+  useEffect(() => {
+    let isMounted = true;
+    const historyTrack: [number, number][] = [];
+
+    const updateIssMarker = async () => {
+      try {
+        const res = await fetch('https://api.wheretheiss.at/v1/satellites/25544');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!isMounted || !mapInstanceRef.current || typeof data.latitude !== 'number') return;
+
+        const lat = data.latitude;
+        const lng = data.longitude;
+        const alt = data.altitude || 418;
+        const vel = data.velocity || 27580;
+
+        setIssCoords({ lat, lng, alt, vel });
+        historyTrack.push([lat, lng]);
+        if (historyTrack.length > 40) historyTrack.shift();
+
+        const L = await import('leaflet');
+        if (!isMounted || !mapInstanceRef.current) return;
+
+        if (!issMarkerRef.current) {
+          const issIcon = L.divIcon({
+            className: 'custom-iss-marker',
+            html: `<div style="display:flex;align-items:center;gap:4px;background:rgba(2,6,23,0.9);border:1.5px solid #10b981;padding:2px 6px;border-radius:999px;color:#10b981;font-family:monospace;font-size:10px;font-weight:bold;white-space:nowrap;box-shadow:0 0 14px rgba(16,185,129,0.5);">
+              <span style="width:6px;height:6px;border-radius:999px;background:#10b981;display:inline-block;"></span>
+              ISS LIVE
+            </div>`,
+            iconSize: [72, 22],
+            iconAnchor: [36, 11],
+          });
+
+          issMarkerRef.current = L.marker([lat, lng], { icon: issIcon }).addTo(mapInstanceRef.current);
+        } else {
+          issMarkerRef.current.setLatLng([lat, lng]);
+        }
+
+        if (issPathRef.current) {
+          issPathRef.current.setLatLngs(historyTrack);
+        } else if (historyTrack.length > 1) {
+          issPathRef.current = L.polyline(historyTrack, {
+            color: '#10b981',
+            weight: 2,
+            dashArray: '4, 6',
+            opacity: 0.8,
+          }).addTo(mapInstanceRef.current);
+        }
+      } catch {
+        // Ignore transient network errors
+      }
+    };
+
+    updateIssMarker();
+    const interval = setInterval(updateIssMarker, 5500);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Toggle Day/Night Solar Terminator Shadow Overlay
+  const handleToggleTerminator = async () => {
+    const nextState = !showTerminator;
+    setShowTerminator(nextState);
+    if (!mapInstanceRef.current) return;
+
+    if (terminatorPolygonRef.current) {
+      mapInstanceRef.current.removeLayer(terminatorPolygonRef.current);
+      terminatorPolygonRef.current = null;
+    }
+
+    if (nextState) {
+      const L = await import('leaflet');
+      const coords = computeSolarTerminatorPolygon(new Date());
+      terminatorPolygonRef.current = L.polygon(coords, {
+        color: '#38bdf8',
+        weight: 1.5,
+        fillColor: '#020617',
+        fillOpacity: 0.52,
+        interactive: false,
+      }).addTo(mapInstanceRef.current);
+      setGpsStatus('Solar Day/Night Terminator Active');
+    } else {
+      setGpsStatus('');
+    }
+  };
+
+  // Toggle Live Global Weather Precipitation Radar Overlay
+  const handleToggleWeatherRadar = async () => {
+    const nextState = !showWeatherRadar;
+    setShowWeatherRadar(nextState);
+    if (!mapInstanceRef.current) return;
+
+    if (weatherLayerRef.current) {
+      mapInstanceRef.current.removeLayer(weatherLayerRef.current);
+      weatherLayerRef.current = null;
+    }
+
+    if (nextState) {
+      try {
+        const L = await import('leaflet');
+        const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+        const data = await res.json();
+        const pastFrames = data?.radar?.past;
+        if (pastFrames && pastFrames.length > 0 && mapInstanceRef.current) {
+          const latestFrame = pastFrames[pastFrames.length - 1];
+          weatherLayerRef.current = L.tileLayer(
+            `https://tilecache.rainviewer.com${latestFrame.path}/256/{z}/{x}/{y}/2/1_1.png`,
+            {
+              opacity: 0.65,
+              maxZoom: 19,
+              attribution: 'RainViewer Weather Radar',
+            }
+          ).addTo(mapInstanceRef.current);
+          setGpsStatus('Live Global Precipitation Radar Active');
+        }
+      } catch {
+        setGpsStatus('Weather Radar Feed Unavailable');
+      }
+    } else {
+      setGpsStatus('');
+    }
+  };
+
+  // Fly to Live ISS Coordinates
+  const handleTrackIss = () => {
+    if (!issCoords || !mapInstanceRef.current) return;
+    mapInstanceRef.current.flyTo([issCoords.lat, issCoords.lng], 5, { duration: 1.5 });
+    setInspectedPoint({
+      lat: issCoords.lat,
+      lng: issCoords.lng,
+      title: 'International Space Station (ISS)',
+      subtitle: `Orbital Altitude: ${issCoords.alt.toFixed(1)} km | Velocity: ${Math.round(issCoords.vel).toLocaleString()} km/h`,
+      country: 'Low Earth Orbit (LEO)',
+    });
+  };
 
   // Switch Tile Layer
   const handleSwitchLayer = (type: 'google-hybrid' | 'esri-satellite' | 'google-roads') => {
@@ -533,6 +684,46 @@ export default function GoogleMapsEarthExplorer({
 
       {/* Bottom-Right Clean Floating Controls */}
       <div className="absolute bottom-4 right-4 z-20 flex flex-col items-end gap-2 pointer-events-none">
+        {/* Orbital & Atmospheric Overlays Pill */}
+        <div className="pointer-events-auto flex items-center gap-1 bg-space-950/80 backdrop-blur-xl p-1 rounded-full border border-space-800 shadow-xl text-xs">
+          {issCoords && (
+            <button
+              onClick={handleTrackIss}
+              className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-aerogreen/15 hover:bg-aerogreen text-aerogreen hover:text-space-950 border border-aerogreen/30 transition-all flex items-center gap-1 cursor-pointer"
+              title="Fly to Live International Space Station (ISS)"
+            >
+              <Satellite className="w-3 h-3" />
+              <span>ISS LIVE</span>
+            </button>
+          )}
+
+          <button
+            onClick={handleToggleTerminator}
+            className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+              showTerminator
+                ? 'bg-aeroblue text-space-950 shadow-sm'
+                : 'text-space-400 hover:text-white'
+            }`}
+            title="Toggle Real-Time Day/Night Solar Terminator Shadow"
+          >
+            <Moon className="w-3 h-3" />
+            <span>DAY/NIGHT</span>
+          </button>
+
+          <button
+            onClick={handleToggleWeatherRadar}
+            className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+              showWeatherRadar
+                ? 'bg-aeroamber text-space-950 shadow-sm'
+                : 'text-space-400 hover:text-white'
+            }`}
+            title="Toggle Live Global Weather Precipitation Radar"
+          >
+            <CloudRain className="w-3 h-3" />
+            <span>RADAR</span>
+          </button>
+        </div>
+
         {/* Layer Selector Pill */}
         <div className="pointer-events-auto flex items-center gap-1 bg-space-950/80 backdrop-blur-xl p-1 rounded-full border border-space-800 shadow-xl text-xs">
           <button
