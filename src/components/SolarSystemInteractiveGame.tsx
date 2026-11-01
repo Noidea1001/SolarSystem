@@ -579,7 +579,7 @@ export default function SolarSystemInteractiveGame() {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.25;
@@ -1071,10 +1071,8 @@ export default function SolarSystemInteractiveGame() {
       baseSize: number
     ) => {
       const rockGeo = new THREE.DodecahedronGeometry(baseSize, 0);
-      const rockMat = new THREE.MeshStandardMaterial({
+      const rockMat = new THREE.MeshLambertMaterial({
         color: colorHex,
-        roughness: 0.9,
-        metalness: 0.12,
       });
       const instanced = new THREE.InstancedMesh(rockGeo, rockMat, count);
       const dummy = new THREE.Object3D();
@@ -1275,6 +1273,17 @@ export default function SolarSystemInteractiveGame() {
     container.addEventListener('dblclick', onDoubleClick);
     window.addEventListener('resize', onResize);
 
+    // Reusable pooled vectors and matrices for zero-GC 60 FPS animation loop
+    const poolWorldPos = new THREE.Vector3();
+    const poolAwayTarget = new THREE.Vector3();
+    const poolPosA = new THREE.Vector3();
+    const poolPosB = new THREE.Vector3();
+    const poolEarthPos = new THREE.Vector3();
+    const poolSunDir = new THREE.Vector3();
+    const poolInvMatrix = new THREE.Matrix4();
+    const poolTargetWorldPos = new THREE.Vector3();
+    const poolDesiredCamPos = new THREE.Vector3();
+
     // Animation Render Loop with True J2000 Keplerian Time Physics
     let animId: number;
     let clock = 0;
@@ -1355,10 +1364,9 @@ export default function SolarSystemInteractiveGame() {
 
           // Orient Halley's Comet ion/dust tail directly away from the Sun (anti-solar vector)
           if (item.cometTailGroup) {
-            const worldPos = new THREE.Vector3();
-            item.tiltGroup.getWorldPosition(worldPos);
-            const awayFromSunTarget = worldPos.clone().multiplyScalar(2.0);
-            item.cometTailGroup.lookAt(awayFromSunTarget);
+            item.tiltGroup.getWorldPosition(poolWorldPos);
+            poolAwayTarget.copy(poolWorldPos).multiplyScalar(2.0);
+            item.cometTailGroup.lookAt(poolAwayTarget);
           }
 
           item.orbitLine.visible = orbitsVisible;
@@ -1385,11 +1393,9 @@ export default function SolarSystemInteractiveGame() {
           const pA = planetMeshes.find((p) => p.planet.id === originId);
           const pB = planetMeshes.find((p) => p.planet.id === targetId);
           if (pA && pB) {
-            const posA = new THREE.Vector3();
-            const posB = new THREE.Vector3();
-            pA.body.getWorldPosition(posA);
-            pB.body.getWorldPosition(posB);
-            laserLineMesh.geometry.setFromPoints([posA, posB]);
+            pA.body.getWorldPosition(poolPosA);
+            pB.body.getWorldPosition(poolPosB);
+            laserLineMesh.geometry.setFromPoints([poolPosA, poolPosB]);
             laserLineMesh.visible = true;
           } else {
             laserLineMesh.visible = false;
@@ -1409,9 +1415,8 @@ export default function SolarSystemInteractiveGame() {
           const dayFraction = utcSeconds / 86400;
 
           // Compute Sun's position vector relative to Earth in ecliptic plane
-          const earthWorldPos = new THREE.Vector3();
-          earthMesh.getWorldPosition(earthWorldPos);
-          const sunAngle = Math.atan2(-earthWorldPos.x, -earthWorldPos.z);
+          earthMesh.getWorldPosition(poolEarthPos);
+          const sunAngle = Math.atan2(-poolEarthPos.x, -poolEarthPos.z);
 
           // 24-hour physical diurnal rotation:
           // Greenwich meridian (0 deg) faces Sun at 12:00 UTC (solar noon).
@@ -1424,14 +1429,14 @@ export default function SolarSystemInteractiveGame() {
             earthCloudsRef.current.rotation.y = earthMesh.rotation.y + (simDateMsRef.current / (86400000 * 30)) * 2 * Math.PI;
           }
 
-          const sunDir = new THREE.Vector3(0, 0, 0).sub(earthWorldPos).normalize();
-          const invMatrix = new THREE.Matrix4().extractRotation(earthMesh.matrixWorld).invert();
-          sunDir.applyMatrix4(invMatrix);
+          poolSunDir.set(0, 0, 0).sub(poolEarthPos).normalize();
+          poolInvMatrix.extractRotation(earthMesh.matrixWorld).invert();
+          poolSunDir.applyMatrix4(poolInvMatrix);
 
-          earthShaderMaterial.uniforms.sunDirection.value.copy(sunDir);
+          earthShaderMaterial.uniforms.sunDirection.value.copy(poolSunDir);
 
           if (earthAtmoRef.current) {
-            earthAtmoRef.current.uniforms.sunDirection.value.copy(sunDir);
+            earthAtmoRef.current.uniforms.sunDirection.value.copy(poolSunDir);
           }
         }
 
@@ -1445,24 +1450,24 @@ export default function SolarSystemInteractiveGame() {
         }
 
         // Camera Follow Target (Earth, Sun, Moon, Spacecraft, or other planets)
-        const targetWorldPos = new THREE.Vector3();
         if (targetedMesh) {
-          targetedMesh.getWorldPosition(targetWorldPos);
+          targetedMesh.getWorldPosition(poolTargetWorldPos);
         } else {
-          targetWorldPos.set(0, 0, 0);
+          poolTargetWorldPos.set(0, 0, 0);
         }
 
         if (isDivingRef.current) {
           spherical.radius = THREE.MathUtils.lerp(spherical.radius, 1.025, 0.14);
         }
 
-        const camX = targetWorldPos.x + spherical.radius * Math.sin(spherical.phi) * Math.sin(spherical.theta);
-        const camY = targetWorldPos.y + spherical.radius * Math.cos(spherical.phi);
-        const camZ = targetWorldPos.z + spherical.radius * Math.sin(spherical.phi) * Math.cos(spherical.theta);
+        const camX = poolTargetWorldPos.x + spherical.radius * Math.sin(spherical.phi) * Math.sin(spherical.theta);
+        const camY = poolTargetWorldPos.y + spherical.radius * Math.cos(spherical.phi);
+        const camZ = poolTargetWorldPos.z + spherical.radius * Math.sin(spherical.phi) * Math.cos(spherical.theta);
 
         const camLerp = isDivingRef.current ? 0.15 : 0.06;
-        camera.position.lerp(new THREE.Vector3(camX, camY, camZ), camLerp);
-        camera.lookAt(targetWorldPos);
+        poolDesiredCamPos.set(camX, camY, camZ);
+        camera.position.lerp(poolDesiredCamPos, camLerp);
+        camera.lookAt(poolTargetWorldPos);
 
         renderer.render(scene, camera);
       }
