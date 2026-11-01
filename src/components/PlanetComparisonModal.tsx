@@ -20,9 +20,9 @@ function RotatingPlanetGlobe({ body, size }: { body: CelestialBodyPhysics; size:
     const camera = new THREE.PerspectiveCamera(fov, 1, 0.1, 100);
     camera.position.z = body.id === 'saturn' ? 3.8 : 2.65;
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
     renderer.setSize(renderSize, renderSize);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.25;
