@@ -28,7 +28,7 @@ export default function DistanceTelemetryPanel({
   const telemetry = computeInterplanetaryTelemetry(originBody, targetBody, daysSinceJ2000);
 
   return (
-    <div className="absolute bottom-20 left-5 z-30 pointer-events-auto w-80 bg-space-950/90 backdrop-blur-xl p-4 rounded-2xl border border-aeroblue/40 shadow-2xl font-mono text-xs text-white space-y-3 animate-in fade-in duration-200">
+    <div className="absolute bottom-20 left-3 sm:left-5 z-30 pointer-events-auto w-[calc(100vw-1.5rem)] max-w-xs sm:w-80 bg-space-950/95 backdrop-blur-xl p-3.5 sm:p-4 rounded-2xl border border-aeroblue/40 shadow-2xl font-mono text-xs text-white space-y-3 animate-in fade-in duration-200">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Radio className="w-3.5 h-3.5 text-aerogreen animate-pulse" />
