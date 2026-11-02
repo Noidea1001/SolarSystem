@@ -530,7 +530,7 @@ export default function GoogleMapsEarthExplorer({
 
       {/* Top Floating Header: Clean, Minimalist, Auto-Hiding during Pan/Zoom */}
       <div
-        className={`absolute top-4 inset-x-4 z-20 flex items-center justify-between gap-3 pointer-events-none transition-all duration-300 ${
+        className={`absolute top-2 sm:top-4 inset-x-2 sm:inset-x-4 z-20 flex items-center justify-between gap-1.5 sm:gap-3 pointer-events-none transition-all duration-300 ${
           isUiHidden || isMapInteracting || isAscending
             ? 'opacity-0 pointer-events-none -translate-y-3'
             : 'opacity-100 pointer-events-auto translate-y-0'
@@ -539,14 +539,14 @@ export default function GoogleMapsEarthExplorer({
         {/* Left: Search Input Pill */}
         <div className="pointer-events-auto flex items-center gap-2 flex-1 max-w-md">
           <form onSubmit={handleSearchSubmit} className="relative flex-1">
-            <div className="flex items-center bg-space-950/85 backdrop-blur-xl border border-space-800 rounded-full shadow-2xl px-3.5 py-1.5 text-xs focus-within:border-aeroblue transition-all">
-              <Search className="w-3.5 h-3.5 text-space-400 mr-2 flex-shrink-0" />
+            <div className="flex items-center bg-space-950/85 backdrop-blur-xl border border-space-800 rounded-full shadow-2xl px-2.5 sm:px-3.5 py-1.5 text-xs focus-within:border-aeroblue transition-all">
+              <Search className="w-3.5 h-3.5 text-space-400 mr-1.5 sm:mr-2 flex-shrink-0" />
               <input
                 type="text"
                 placeholder="Search country, city, address..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent text-white placeholder-space-500 focus:outline-none text-xs"
+                className="w-full bg-transparent text-white placeholder-space-500 focus:outline-none text-[11px] sm:text-xs"
               />
               {searchQuery && (
                 <button
@@ -559,7 +559,7 @@ export default function GoogleMapsEarthExplorer({
               )}
               <button
                 type="submit"
-                className="ml-2 px-3 py-1 rounded-full bg-aeroblue hover:bg-aeroblue-light text-space-950 font-bold text-[10px] transition-colors flex-shrink-0 cursor-pointer"
+                className="ml-1 sm:ml-2 px-2.5 sm:px-3 py-1 rounded-full bg-aeroblue hover:bg-aeroblue-light text-space-950 font-bold text-[9px] sm:text-[10px] transition-colors flex-shrink-0 cursor-pointer"
               >
                 {isSearching ? '...' : 'SEARCH'}
               </button>
@@ -568,11 +568,11 @@ export default function GoogleMapsEarthExplorer({
         </div>
 
         {/* Right: Clear View & Return to 3D Solar System Pill */}
-        <div className="pointer-events-auto flex items-center gap-2">
+        <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
           {/* Clear View / Hide HUD Button */}
           <button
             onClick={() => setIsUiHidden(true)}
-            className="p-2 rounded-full bg-space-950/85 hover:bg-space-900 border border-space-800 text-space-400 hover:text-white backdrop-blur-xl transition-all cursor-pointer shadow-xl"
+            className="p-1.5 sm:p-2 rounded-full bg-space-950/85 hover:bg-space-900 border border-space-800 text-space-400 hover:text-white backdrop-blur-xl transition-all cursor-pointer shadow-xl"
             title="Clear View (Hide HUD overlays)"
           >
             <EyeOff className="w-3.5 h-3.5" />
@@ -581,11 +581,12 @@ export default function GoogleMapsEarthExplorer({
           {/* Return to 3D Solar System Button */}
           <button
             onClick={handleReturnToSpace}
-            className="px-4 py-2 rounded-full bg-aeroamber hover:bg-aeroamber-light text-space-950 font-bold text-xs transition-all flex items-center gap-2 shadow-xl shadow-aeroamber/20 cursor-pointer"
+            className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-aeroamber hover:bg-aeroamber-light text-space-950 font-bold text-[11px] sm:text-xs transition-all flex items-center gap-1.5 sm:gap-2 shadow-xl shadow-aeroamber/20 cursor-pointer"
             title="Return to 3D Round Earth in Solar System (or Zoom Out)"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>RETURN TO 3D EARTH</span>
+            <span className="hidden sm:inline">RETURN TO 3D EARTH</span>
+            <span className="sm:hidden">3D EARTH</span>
           </button>
         </div>
       </div>
