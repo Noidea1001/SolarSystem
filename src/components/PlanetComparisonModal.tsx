@@ -144,25 +144,25 @@ export default function PlanetComparisonModal({
   const gravityRatio = (bodyA.surfaceGravityMs2 / Math.max(bodyB.surfaceGravityMs2, 0.0001)).toFixed(2);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-space-950/75 backdrop-blur-md p-4 font-mono text-xs animate-in fade-in duration-200">
-      <div className="w-full max-w-2xl bg-space-950/95 border border-space-800 rounded-2xl shadow-2xl overflow-hidden text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-space-950/75 backdrop-blur-md p-3 sm:p-4 font-mono text-xs animate-in fade-in duration-200">
+      <div className="w-full max-w-2xl max-h-[92vh] flex flex-col bg-space-950/95 border border-space-800 rounded-2xl shadow-2xl overflow-hidden text-white">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-space-800 bg-space-900/50">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-3.5 border-b border-space-800 bg-space-900/50 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <Scale className="w-4 h-4 text-aeroblue" />
-            <span className="text-xs font-bold tracking-widest uppercase text-white">
+            <Scale className="w-4 h-4 text-aeroblue flex-shrink-0" />
+            <span className="text-[11px] sm:text-xs font-bold tracking-widest uppercase text-white truncate">
               PLANETARY SCALE &amp; ASTROPHYSICS COMPARATOR
             </span>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full text-space-400 hover:text-white hover:bg-space-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-full text-space-400 hover:text-white hover:bg-space-800 transition-colors cursor-pointer flex-shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-5 space-y-5">
+        <div className="p-4 sm:p-5 space-y-4 sm:space-y-5 overflow-y-auto">
           {/* Selector Controls */}
           <div className="grid grid-cols-1 sm:grid-cols-11 gap-2 items-center">
             <div className="sm:col-span-5">
