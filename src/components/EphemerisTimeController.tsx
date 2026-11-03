@@ -71,16 +71,16 @@ export default function EphemerisTimeController({
   return (
     <>
       {/* Top-Left Compact Ephemeris & Real-Time Clock Pill */}
-      <div className="absolute top-14 sm:top-16 left-2 sm:left-4 z-20 flex flex-wrap items-center gap-1.5 sm:gap-2 pointer-events-none font-mono text-[11px] sm:text-xs">
+      <div className="absolute top-11 sm:top-16 left-2 sm:left-4 z-20 flex flex-wrap items-center gap-1.5 sm:gap-2 pointer-events-none font-mono text-[11px] sm:text-xs">
         {/* Live Ephemeris Clock Button */}
         <button
           onClick={() => setShowDatePicker(!showDatePicker)}
-          className="pointer-events-auto flex items-center gap-1.5 sm:gap-2 bg-space-950/85 hover:bg-space-900 backdrop-blur-xl px-2.5 sm:px-3.5 py-1.5 rounded-full border border-space-800 shadow-xl text-white transition-all cursor-pointer"
+          className="pointer-events-auto flex items-center gap-1.5 sm:gap-2 bg-space-950/90 hover:bg-space-900 backdrop-blur-xl px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full border border-space-800 shadow-xl text-white transition-all cursor-pointer"
           title="Open Astronomical Date, Time & Ephemeris Controller"
         >
           <Clock className={`w-3.5 h-3.5 flex-shrink-0 ${isRealTimeLive ? 'text-aerogreen' : 'text-aeroamber'}`} />
-          <span className="font-bold tracking-wider">{activeDateStr}</span>
-          <span className="text-[10px] text-space-300 font-semibold">{activeTimeStr}</span>
+          <span className="font-bold tracking-wider text-[10px] sm:text-xs">{activeDateStr}</span>
+          <span className="text-[10px] sm:text-[11px] text-space-300 font-semibold">{activeTimeStr}</span>
           <span className="text-[9px] text-aeroblue font-bold hidden xs:inline">{activeLabel}</span>
           <span
             className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold uppercase ${
@@ -96,7 +96,7 @@ export default function EphemerisTimeController({
 
       {/* Expandable Ephemeris Date Scrubber Popover */}
       {showDatePicker && (
-        <div className="absolute top-24 sm:top-28 left-2 sm:left-4 z-30 pointer-events-auto w-[calc(100vw-1rem)] max-w-xs sm:w-80 bg-space-950/95 backdrop-blur-xl p-3.5 sm:p-4 rounded-2xl border border-space-800 shadow-2xl font-mono text-xs text-white space-y-3 animate-in fade-in duration-200">
+        <div className="absolute top-21 sm:top-28 left-2 sm:left-4 z-30 pointer-events-auto w-[calc(100vw-1rem)] max-w-xs sm:w-80 bg-space-950/95 backdrop-blur-xl p-3.5 sm:p-4 rounded-2xl border border-space-800 shadow-2xl font-mono text-xs text-white space-y-3 animate-in fade-in duration-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Calendar className="w-3.5 h-3.5 text-aeroblue" />
