@@ -273,16 +273,16 @@ export default function PlanetComparisonModal({
           </div>
 
           {/* Quick Camera Focus Buttons */}
-          <div className="flex items-center justify-between gap-3 pt-1">
+          <div className="flex items-center justify-between gap-2 sm:gap-3 pt-1">
             <button
               onClick={() => {
                 onFocusPlanet(bodyA);
                 onClose();
               }}
-              className="flex-1 py-2 px-3 rounded-xl bg-space-900 hover:bg-space-800 border border-space-800 text-white font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="flex-1 py-2 px-2.5 sm:px-3 rounded-xl bg-space-900 hover:bg-space-800 border border-space-800 text-white font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-[10px] sm:text-xs"
             >
-              <Compass className="w-3.5 h-3.5 text-aeroblue" />
-              <span>FOCUS {bodyA.name.split(' (')[0].toUpperCase()}</span>
+              <Compass className="w-3.5 h-3.5 text-aeroblue flex-shrink-0" />
+              <span className="truncate">FOCUS {bodyA.name.split(' (')[0].toUpperCase()}</span>
             </button>
 
             <button
@@ -290,10 +290,10 @@ export default function PlanetComparisonModal({
                 onFocusPlanet(bodyB);
                 onClose();
               }}
-              className="flex-1 py-2 px-3 rounded-xl bg-space-900 hover:bg-space-800 border border-space-800 text-white font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="flex-1 py-2 px-2.5 sm:px-3 rounded-xl bg-space-900 hover:bg-space-800 border border-space-800 text-white font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-[10px] sm:text-xs"
             >
-              <Compass className="w-3.5 h-3.5 text-aeroamber" />
-              <span>FOCUS {bodyB.name.split(' (')[0].toUpperCase()}</span>
+              <Compass className="w-3.5 h-3.5 text-aeroamber flex-shrink-0" />
+              <span className="truncate">FOCUS {bodyB.name.split(' (')[0].toUpperCase()}</span>
             </button>
           </div>
         </div>
