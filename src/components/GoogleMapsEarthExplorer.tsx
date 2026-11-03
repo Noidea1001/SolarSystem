@@ -543,7 +543,7 @@ export default function GoogleMapsEarthExplorer({
               <Search className="w-3.5 h-3.5 text-space-400 mr-1.5 sm:mr-2 flex-shrink-0" />
               <input
                 type="text"
-                placeholder="Search country, city, address..."
+                placeholder="Search location, country, city..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-transparent text-white placeholder-space-500 focus:outline-none text-[11px] sm:text-xs"
@@ -568,11 +568,11 @@ export default function GoogleMapsEarthExplorer({
         </div>
 
         {/* Right: Clear View & Return to 3D Solar System Pill */}
-        <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
+        <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
           {/* Clear View / Hide HUD Button */}
           <button
             onClick={() => setIsUiHidden(true)}
-            className="p-1.5 sm:p-2 rounded-full bg-space-950/85 hover:bg-space-900 border border-space-800 text-space-400 hover:text-white backdrop-blur-xl transition-all cursor-pointer shadow-xl"
+            className="p-1.5 sm:p-2 rounded-full bg-space-950/85 hover:bg-space-900 border border-space-800 text-space-400 hover:text-white backdrop-blur-xl transition-all cursor-pointer shadow-xl flex-shrink-0"
             title="Clear View (Hide HUD overlays)"
           >
             <EyeOff className="w-3.5 h-3.5" />
@@ -581,10 +581,10 @@ export default function GoogleMapsEarthExplorer({
           {/* Return to 3D Solar System Button */}
           <button
             onClick={handleReturnToSpace}
-            className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-aeroamber hover:bg-aeroamber-light text-space-950 font-bold text-[11px] sm:text-xs transition-all flex items-center gap-1.5 sm:gap-2 shadow-xl shadow-aeroamber/20 cursor-pointer"
+            className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-aeroamber hover:bg-aeroamber-light text-space-950 font-bold text-[11px] sm:text-xs transition-all flex items-center gap-1.5 sm:gap-2 shadow-xl shadow-aeroamber/20 cursor-pointer flex-shrink-0 whitespace-nowrap"
             title="Return to 3D Round Earth in Solar System (or Zoom Out)"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-3.5 h-3.5 flex-shrink-0" />
             <span className="hidden sm:inline">RETURN TO 3D EARTH</span>
             <span className="sm:hidden">3D EARTH</span>
           </button>
@@ -594,7 +594,7 @@ export default function GoogleMapsEarthExplorer({
       {/* Sleek Location Card (When point is clicked or searched) */}
       {inspectedPoint && (
         <div
-          className={`absolute top-28 left-4 z-20 pointer-events-auto max-w-sm transition-all duration-300 ${
+          className={`absolute top-20 sm:top-28 left-2 sm:left-4 right-2 sm:right-auto z-20 pointer-events-auto max-w-sm transition-all duration-300 ${
             isUiHidden || isMapInteracting ? 'opacity-0 pointer-events-none' : 'opacity-100'
           }`}
         >
@@ -634,9 +634,9 @@ export default function GoogleMapsEarthExplorer({
         </div>
       )}
 
-      {/* Bottom-Left Minimal 1-Line Telemetry Pill */}
+      {/* Bottom-Left Minimal 1-Line Telemetry Pill (Desktop/Tablet) */}
       <div
-        className={`absolute bottom-4 left-4 z-20 pointer-events-none transition-all duration-300 ${
+        className={`hidden sm:block absolute bottom-4 left-4 z-20 pointer-events-none transition-all duration-300 ${
           isUiHidden || isMapInteracting || isAscending ? 'opacity-0' : 'opacity-100'
         }`}
       >
@@ -656,15 +656,15 @@ export default function GoogleMapsEarthExplorer({
 
       {/* Bottom-Right Clean Floating Controls */}
       <div
-        className={`absolute bottom-4 right-4 z-20 flex flex-col items-end gap-2 pointer-events-none transition-all duration-300 ${
+        className={`absolute bottom-3 sm:bottom-4 right-2 sm:right-4 z-20 flex flex-col items-end gap-1.5 sm:gap-2 pointer-events-none transition-all duration-300 ${
           isUiHidden || isMapInteracting || isAscending ? 'opacity-0' : 'opacity-100'
         }`}
       >
         {/* Orbital & Atmospheric Overlays Pill */}
-        <div className="pointer-events-auto flex items-center gap-1 bg-space-950/80 backdrop-blur-xl p-1 rounded-full border border-space-800 shadow-xl text-xs">
+        <div className="pointer-events-auto flex items-center gap-1 bg-space-950/80 backdrop-blur-xl p-0.5 sm:p-1 rounded-full border border-space-800 shadow-xl text-xs">
           <button
             onClick={handleToggleTerminator}
-            className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+            className={`px-2 sm:px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
               showTerminator
                 ? 'bg-aeroblue text-space-950 shadow-sm'
                 : 'text-space-400 hover:text-white'
@@ -677,7 +677,7 @@ export default function GoogleMapsEarthExplorer({
 
           <button
             onClick={handleToggleWeatherRadar}
-            className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+            className={`px-2 sm:px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
               showWeatherRadar
                 ? 'bg-aeroamber text-space-950 shadow-sm'
                 : 'text-space-400 hover:text-white'
@@ -690,10 +690,10 @@ export default function GoogleMapsEarthExplorer({
         </div>
 
         {/* Layer Selector Pill */}
-        <div className="pointer-events-auto flex items-center gap-1 bg-space-950/80 backdrop-blur-xl p-1 rounded-full border border-space-800 shadow-xl text-xs">
+        <div className="pointer-events-auto flex items-center gap-0.5 sm:gap-1 bg-space-950/80 backdrop-blur-xl p-0.5 sm:p-1 rounded-full border border-space-800 shadow-xl text-xs">
           <button
             onClick={() => handleSwitchLayer('google-hybrid')}
-            className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
+            className={`px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer ${
               activeLayer === 'google-hybrid'
                 ? 'bg-aeroblue text-space-950 shadow-sm'
                 : 'text-space-400 hover:text-white'
@@ -704,7 +704,7 @@ export default function GoogleMapsEarthExplorer({
 
           <button
             onClick={() => handleSwitchLayer('esri-satellite')}
-            className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
+            className={`px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer ${
               activeLayer === 'esri-satellite'
                 ? 'bg-aeroblue text-space-950 shadow-sm'
                 : 'text-space-400 hover:text-white'
@@ -715,7 +715,7 @@ export default function GoogleMapsEarthExplorer({
 
           <button
             onClick={() => handleSwitchLayer('google-roads')}
-            className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
+            className={`px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer ${
               activeLayer === 'google-roads'
                 ? 'bg-aeroblue text-space-950 shadow-sm'
                 : 'text-space-400 hover:text-white'
@@ -726,10 +726,10 @@ export default function GoogleMapsEarthExplorer({
         </div>
 
         {/* Minimal Icon Controls Stack */}
-        <div className="pointer-events-auto flex items-center gap-1 bg-space-950/80 backdrop-blur-xl p-1 rounded-full border border-space-800 shadow-xl">
+        <div className="pointer-events-auto flex items-center gap-1 bg-space-950/80 backdrop-blur-xl p-0.5 sm:p-1 rounded-full border border-space-800 shadow-xl">
           <button
             onClick={handleLocateMe}
-            className={`p-2 rounded-full transition-all cursor-pointer ${
+            className={`p-1.5 sm:p-2 rounded-full transition-all cursor-pointer ${
               isLocating
                 ? 'bg-aerogreen text-space-950 animate-pulse'
                 : 'bg-space-900 hover:bg-space-850 text-aerogreen'
@@ -743,7 +743,7 @@ export default function GoogleMapsEarthExplorer({
 
           <button
             onClick={() => mapInstanceRef.current && mapInstanceRef.current.zoomIn()}
-            className="p-2 rounded-full bg-space-900 hover:bg-space-850 text-white transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-full bg-space-900 hover:bg-space-850 text-white transition-colors cursor-pointer"
             title="Zoom In"
           >
             <ZoomIn className="w-3.5 h-3.5" />
@@ -751,7 +751,7 @@ export default function GoogleMapsEarthExplorer({
 
           <button
             onClick={handleZoomOutOrReturn}
-            className="p-2 rounded-full bg-space-900 hover:bg-space-850 text-white transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-full bg-space-900 hover:bg-space-850 text-white transition-colors cursor-pointer"
             title="Zoom Out (or Zoom Out to 3D Round Earth)"
           >
             <ZoomOut className="w-3.5 h-3.5" />
