@@ -133,4 +133,19 @@ npm run start
   2. *User Local Real-Time Display*: Configured the primary ephemeris clock to display the user's live local date, hours, minutes, and seconds by default, continuously ticking 1:1 with `Date.now()`.
   3. *Flexible Mode Toggling*: Embedded an instant toggle switch allowing users to alternate seamlessly between My Local Time and Astronomical UTC inside the ephemeris controller.
 
+### 7. Daytime Sunlit Illumination and World-Space Lighting Alignment
+- **Problem**:
+  Users reported being unable to clearly inspect the illuminated bright daylight side of Earth and other celestial bodies. Rotating the camera to examine the daytime hemisphere caused the planet to unexpectedly turn dark or shadowed, and selecting Earth or returning from satellite mode placed the camera on the nighttime side.
+- **Root Causes**:
+  1. *Coordinate Space Mismatch in Custom GLSL Shader*: In the custom Earth shader, `normalMatrix * normal` in the vertex shader transformed vertex normals into View (Camera) Space, while the Sun direction vector was supplied in object or world space. As the camera orbited around Earth, the normals rotated relative to the camera while the light direction vector did not, causing $N \cdot L$ to become negative and dimming the daytime side.
+  2. *Night-Side Camera Initial Angles*: Camera target positions for planet focus and map return used hardcoded spherical angles (`theta = 0.52`) that oriented the camera behind Earth on the dark night side facing away from the Sun.
+- **Solutions**:
+  1. *World-Space Lighting Normalization*: Refactored `earthShaderMaterial` and `atmoMat` shaders to calculate vertex normals and positions strictly in World Space:
+     $$vWorldNormal = \text{normalize}((\text{modelMatrix} \cdot \text{vec4}(normal, 0.0)).xyz)$$
+     $$vWorldPosition = (\text{modelMatrix} \cdot \text{vec4}(position, 1.0)).xyz$$
+     This completely decoupled lighting calculations from camera movement, ensuring that the sunlit hemisphere facing $(0, 0, 0)$ remains brightly illuminated from all camera viewing angles.
+  2. *Automatic Daytime Camera Alignment*: Updated `handleSelectPlanet`, `handlePrepareReturnToSpace`, and `handleGlobalEarthView` to compute the real-time angle between the planet and the Sun ($\text{sunAngle} = \text{atan2}(-x, -z)$), automatically angling the camera to face the daytime side upon selection.
+  3. *Dedicated Bright Side Focus Action*: Added a "VIEW BRIGHT DAYLIGHT SIDE" action button inside the planet telemetry HUD, allowing users to immediately pivot the camera to the sunlit side of Earth or any selected planet with one click.
+
+
 
