@@ -450,8 +450,11 @@ export default function SolarSystemInteractiveGame() {
       if (earthItem) {
         sceneContextRef.current.targetedMesh = earthItem.body;
         sceneContextRef.current.spherical.radius = 2.85;
-        sceneContextRef.current.spherical.theta = 0.52;
         sceneContextRef.current.spherical.phi = 1.35;
+        const ePos = new THREE.Vector3();
+        earthItem.body.getWorldPosition(ePos);
+        const sunAngle = Math.atan2(-ePos.x, -ePos.z);
+        sceneContextRef.current.spherical.theta = sunAngle + 0.25;
         setIsEarthFocused(true);
         setSelectedPlanet(earthItem.planet);
       }
@@ -469,8 +472,11 @@ export default function SolarSystemInteractiveGame() {
       if (earthItem) {
         sceneContextRef.current.targetedMesh = earthItem.body;
         sceneContextRef.current.spherical.radius = 2.85;
-        sceneContextRef.current.spherical.theta = 0.52;
         sceneContextRef.current.spherical.phi = 1.35;
+        const ePos = new THREE.Vector3();
+        earthItem.body.getWorldPosition(ePos);
+        const sunAngle = Math.atan2(-ePos.x, -ePos.z);
+        sceneContextRef.current.spherical.theta = sunAngle + 0.25;
         setIsEarthFocused(true);
         setSelectedPlanet(earthItem.planet);
       } else {
@@ -710,13 +716,13 @@ export default function SolarSystemInteractiveGame() {
       },
       vertexShader: `
         varying vec2 vUv;
-        varying vec3 vNormal;
+        varying vec3 vWorldNormal;
         varying vec3 vWorldPosition;
         void main() {
           vUv = uv;
-          vNormal = normalize(normalMatrix * normal);
           vec4 worldPos = modelMatrix * vec4(position, 1.0);
           vWorldPosition = worldPos.xyz;
+          vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
           gl_Position = projectionMatrix * viewMatrix * worldPos;
         }
       `,
@@ -726,35 +732,38 @@ export default function SolarSystemInteractiveGame() {
         uniform sampler2D specularMap;
         uniform vec3 sunDirection;
         varying vec2 vUv;
-        varying vec3 vNormal;
+        varying vec3 vWorldNormal;
         varying vec3 vWorldPosition;
         void main() {
-          vec3 norm = normalize(vNormal);
+          vec3 norm = normalize(vWorldNormal);
           vec3 sunDir = normalize(sunDirection);
           float NdotL = dot(norm, sunDir);
           
           // Smooth day/night twilight terminator transition
-          float dayFactor = smoothstep(-0.12, 0.12, NdotL);
+          float dayFactor = smoothstep(-0.15, 0.15, NdotL);
           
           vec4 dayColor = texture2D(dayTexture, vUv);
           vec4 nightColor = texture2D(nightTexture, vUv);
           
           // Realistic night lights: warm glowing NASA city lights
           vec3 nightLights = nightColor.rgb * 2.3;
-          vec3 mixedColor = mix(nightLights, dayColor.rgb, dayFactor);
           
-          // Ocean specular sun glint
+          // Bright, crisp daylight side with direct solar radiance
+          vec3 litDay = dayColor.rgb * (1.18 + max(0.0, NdotL) * 0.45);
+          vec3 mixedColor = mix(nightLights, litDay, dayFactor);
+          
+          // Ocean specular sun glint in world space
           vec3 viewDir = normalize(cameraPosition - vWorldPosition);
           vec3 halfDir = normalize(sunDir + viewDir);
           float specAmount = pow(max(dot(norm, halfDir), 0.0), 32.0);
           float specMask = texture2D(specularMap, vUv).r;
-          vec3 sunSpecular = vec3(0.9, 0.95, 1.0) * specAmount * specMask * max(0.0, NdotL) * 0.75;
+          vec3 sunSpecular = vec3(0.95, 0.98, 1.0) * specAmount * specMask * max(0.0, NdotL) * 0.85;
           mixedColor += sunSpecular;
           
-          // Subtle atmospheric limb rim glow on daylight side
+          // Atmospheric limb rim glow on daylight side in world space
           float rim = 1.0 - max(0.0, dot(norm, viewDir));
-          vec3 atmoGlow = vec3(0.25, 0.65, 1.0) * pow(rim, 3.2) * max(0.0, NdotL + 0.2);
-          mixedColor += atmoGlow * 0.45;
+          vec3 atmoGlow = vec3(0.25, 0.65, 1.0) * pow(rim, 3.2) * max(0.0, NdotL + 0.25);
+          mixedColor += atmoGlow * 0.5;
           
           gl_FragColor = vec4(mixedColor, 1.0);
         }
@@ -826,26 +835,27 @@ export default function SolarSystemInteractiveGame() {
             sunDirection: { value: new THREE.Vector3(1, 0, 0) },
           },
           vertexShader: `
-            varying vec3 vNormal;
+            varying vec3 vWorldNormal;
             varying vec3 vWorldPosition;
             void main() {
-              vNormal = normalize(normalMatrix * normal);
               vec4 worldPos = modelMatrix * vec4(position, 1.0);
               vWorldPosition = worldPos.xyz;
+              vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
               gl_Position = projectionMatrix * viewMatrix * worldPos;
             }
           `,
           fragmentShader: `
             uniform vec3 sunDirection;
-            varying vec3 vNormal;
+            varying vec3 vWorldNormal;
             varying vec3 vWorldPosition;
             void main() {
-              vec3 norm = normalize(vNormal);
+              vec3 norm = normalize(vWorldNormal);
               vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+              vec3 sunDir = normalize(sunDirection);
               float rim = 1.0 - max(0.0, dot(norm, viewDir));
-              float sunFacing = dot(norm, normalize(sunDirection));
-              float intensity = pow(rim, 2.5) * smoothstep(-0.3, 0.35, sunFacing);
-              vec3 atmoColor = vec3(0.2, 0.62, 1.0);
+              float sunFacing = dot(norm, sunDir);
+              float intensity = pow(rim, 2.5) * smoothstep(-0.25, 0.4, sunFacing);
+              vec3 atmoColor = vec3(0.22, 0.65, 1.0);
               gl_FragColor = vec4(atmoColor, intensity * 0.95);
             }
           `,
@@ -1529,9 +1539,8 @@ export default function SolarSystemInteractiveGame() {
             earthCloudsRef.current.rotation.y = earthMesh.rotation.y + (simDateMsRef.current / (86400000 * 30)) * 2 * Math.PI;
           }
 
+          // Physical world-space vector from Earth toward the Sun at (0, 0, 0)
           poolSunDir.set(0, 0, 0).sub(poolEarthPos).normalize();
-          poolInvMatrix.extractRotation(earthMesh.matrixWorld).invert();
-          poolSunDir.applyMatrix4(poolInvMatrix);
 
           earthShaderMaterial.uniforms.sunDirection.value.copy(poolSunDir);
 
@@ -1602,6 +1611,35 @@ export default function SolarSystemInteractiveGame() {
     if (item) {
       sceneContextRef.current.targetedMesh = item.body;
       sceneContextRef.current.spherical.radius = Math.max(1.8, planet.sizeRadius * 4.2 + 1.5);
+
+      // Automatically place camera on the sunlit/bright daytime side of the planet
+      const pPos = new THREE.Vector3();
+      item.body.getWorldPosition(pPos);
+      const sunAngle = Math.atan2(-pPos.x, -pPos.z);
+      sceneContextRef.current.spherical.theta = sunAngle + 0.25;
+      sceneContextRef.current.spherical.phi = 1.32;
+    }
+  };
+
+  // Focus directly onto the bright sunlit side of the selected planet or Earth
+  const handleFocusSunlitSide = () => {
+    if (!sceneContextRef.current) return;
+    const item = selectedPlanet
+      ? sceneContextRef.current.planetMeshes.find((m) => m.planet.id === selectedPlanet.id)
+      : sceneContextRef.current.planetMeshes.find((m) => m.planet.id === 'earth');
+
+    if (item) {
+      sceneContextRef.current.targetedMesh = item.body;
+      const targetR = selectedPlanet
+        ? Math.max(1.8, selectedPlanet.sizeRadius * 4.2 + 1.5)
+        : 2.85;
+      sceneContextRef.current.spherical.radius = targetR;
+      sceneContextRef.current.spherical.phi = 1.35;
+
+      const pPos = new THREE.Vector3();
+      item.body.getWorldPosition(pPos);
+      const sunAngle = Math.atan2(-pPos.x, -pPos.z);
+      sceneContextRef.current.spherical.theta = sunAngle + 0.15;
     }
   };
 
@@ -1665,9 +1703,12 @@ export default function SolarSystemInteractiveGame() {
     if (!earthItem) return;
 
     sceneContextRef.current.targetedMesh = earthItem.body;
-    sceneContextRef.current.spherical.radius = 2.65;
-    sceneContextRef.current.spherical.phi = 1.22;
-    sceneContextRef.current.spherical.theta = 0.45;
+    sceneContextRef.current.spherical.radius = 2.85;
+    sceneContextRef.current.spherical.phi = 1.25;
+    const earthPos = new THREE.Vector3();
+    earthItem.body.getWorldPosition(earthPos);
+    const sunAngle = Math.atan2(-earthPos.x, -earthPos.z);
+    sceneContextRef.current.spherical.theta = sunAngle + 0.25;
   };
 
   // Select Country on Earth (Google Maps Mode: zooms close to country)
@@ -2140,12 +2181,27 @@ export default function SolarSystemInteractiveGame() {
                       <span>PINPOINT MY GPS LOCATION</span>
                     </button>
 
+                    <button
+                      onClick={handleFocusSunlitSide}
+                      className="w-full py-2 px-3 rounded-xl bg-space-900 hover:bg-space-850 text-aeroamber border border-aeroamber/30 font-bold transition-all flex items-center justify-center gap-2 text-[11px] cursor-pointer"
+                    >
+                      <Sun className="w-3.5 h-3.5 text-aeroamber" />
+                      <span>VIEW BRIGHT DAYLIGHT SIDE</span>
+                    </button>
+
                     {userLocation && (
                       <div className="text-[10px] text-space-400 text-center">{locatingStatus}</div>
                     )}
                   </div>
                 ) : (
                   <div className="space-y-1.5 pt-1 text-[11px] text-space-300">
+                    <button
+                      onClick={handleFocusSunlitSide}
+                      className="w-full py-2 px-3 mb-1 rounded-xl bg-space-900 hover:bg-space-850 text-aeroamber border border-aeroamber/30 font-bold transition-all flex items-center justify-center gap-2 text-[11px] cursor-pointer"
+                    >
+                      <Sun className="w-3.5 h-3.5 text-aeroamber" />
+                      <span>VIEW BRIGHT DAYLIGHT SIDE</span>
+                    </button>
                     <div className="text-[10px] text-space-400 uppercase font-bold">ATMOSPHERE:</div>
                     <div className="flex flex-wrap gap-1">
                       {selectedPlanet.atmosphere.slice(0, 3).map((gas, i) => (
