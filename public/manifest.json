@@ -1,0 +1,22 @@
+{
+  "name": "Aerovex Space Platform",
+  "short_name": "AerovexSpace",
+  "description": "Scientific 3D Interactive Solar System, Deep-Space Observatory & Astrophysics Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020409",
+  "theme_color": "#020409",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/textures/planets/earth_day_4k.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/textures/planets/earth_day_4k.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
