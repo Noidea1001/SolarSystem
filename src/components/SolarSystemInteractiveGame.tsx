@@ -29,12 +29,18 @@ import {
   Scale,
   Ruler,
   Orbit,
+  Volume2,
+  VolumeX,
+  Languages,
+  BookOpen,
 } from 'lucide-react';
 
 import GoogleMapsEarthExplorer from './GoogleMapsEarthExplorer';
 import PlanetComparisonModal from './PlanetComparisonModal';
 import DistanceTelemetryPanel from './DistanceTelemetryPanel';
 import EphemerisTimeController from './EphemerisTimeController';
+import { spaceAudio } from '../utils/spaceAudio';
+import { buildConstellationLinesMesh } from '../utils/constellations';
 import {
   CELESTIAL_BODIES_PHYSICS,
   MAJOR_MOONS_DATA,
@@ -326,7 +332,11 @@ const REAL_WORLD_COUNTRIES: CountryPoint[] = [
 type RealPlanetPhysics = CelestialBodyPhysics;
 const REAL_PLANETS_PHYSICS: RealPlanetPhysics[] = CELESTIAL_BODIES_PHYSICS;
 
-export default function SolarSystemInteractiveGame() {
+interface SolarSystemInteractiveGameProps {
+  onOpenKnowledgeTab?: (tab: 'observatory' | 'planetary' | 'spacetech' | 'missions') => void;
+}
+
+export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: SolarSystemInteractiveGameProps = {}) {
   const mountRef = useRef<HTMLDivElement>(null);
   const [selectedPlanet, setSelectedPlanet] = useState<RealPlanetPhysics | null>(null);
   const [selectedMoon, setSelectedMoon] = useState<MoonData | null>(null);
@@ -347,6 +357,17 @@ export default function SolarSystemInteractiveGame() {
   const [locatingStatus, setLocatingStatus] = useState<string>('Ready to locate your real coordinates on Earth');
   const [isEarthFocused, setIsEarthFocused] = useState(false);
   const isEarthFocusedRef = useRef(false);
+
+  // Advanced Educational & Simulation States
+  const [isAudioMuted, setIsAudioMuted] = useState(true);
+  const [language, setLanguage] = useState<'km' | 'en'>('km');
+  const [showConstellations, setShowConstellations] = useState(false);
+  const showConstellationsRef = useRef(false);
+  const constellationLinesRef = useRef<THREE.LineSegments | null>(null);
+  const [isEclipseActive, setIsEclipseActive] = useState(false);
+  const isEclipseActiveRef = useRef(false);
+  const saturnRingShaderRef = useRef<THREE.WebGLProgramParametersWithUniforms | null>(null);
+  const saturnBodyMeshRef = useRef<THREE.Mesh | null>(null);
   useEffect(() => {
     isEarthFocusedRef.current = isEarthFocused;
   }, [isEarthFocused]);
@@ -397,6 +418,38 @@ export default function SolarSystemInteractiveGame() {
 
   // Cinematic 3D Dive to Google Maps State
   const [isDivingToMaps, setIsDivingToMaps] = useState(false);
+
+  useEffect(() => {
+    showConstellationsRef.current = showConstellations;
+    if (constellationLinesRef.current) {
+      constellationLinesRef.current.visible = showConstellations;
+    }
+  }, [showConstellations]);
+
+  const handleToggleAudio = () => {
+    const isNowMuted = !spaceAudio.toggleMute();
+    setIsAudioMuted(isNowMuted);
+    if (!isNowMuted) {
+      spaceAudio.playTelemetryBeep(1200, 0.12);
+    }
+  };
+
+  const handleToggleLanguage = () => {
+    setLanguage((prev) => (prev === 'km' ? 'en' : 'km'));
+    spaceAudio.playTelemetryBeep(880, 0.08);
+  };
+
+  const handleToggleConstellations = () => {
+    setShowConstellations((prev) => {
+      const next = !prev;
+      showConstellationsRef.current = next;
+      if (constellationLinesRef.current) {
+        constellationLinesRef.current.visible = next;
+      }
+      return next;
+    });
+    spaceAudio.playTelemetryBeep(940, 0.08);
+  };
   const [diveStage, setDiveStage] = useState<'idle' | 'hyperspeed' | 'cloud_burst' | 'cloud_dissolve'>('idle');
   const [diveAltitude, setDiveAltitude] = useState(1200);
   const isDivingRef = useRef(false);
@@ -633,6 +686,12 @@ export default function SolarSystemInteractiveGame() {
     const starField = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 1.25, vertexColors: true, transparent: true, opacity: 0.85 }));
     scene.add(starField);
 
+    // 3D Astronomical Constellations Sphere
+    const constellationLines = buildConstellationLinesMesh(650);
+    constellationLines.visible = showConstellationsRef.current;
+    scene.add(constellationLines);
+    constellationLinesRef.current = constellationLines;
+
     // Realistic Deep Space Ambient Illumination (High Contrast)
     const ambientLight = new THREE.AmbientLight(0x060c18, 0.45);
     scene.add(ambientLight);
@@ -713,6 +772,8 @@ export default function SolarSystemInteractiveGame() {
         nightTexture: { value: earthNightTex },
         specularMap: { value: earthSpecTex },
         sunDirection: { value: new THREE.Vector3(1, 0, 0) },
+        eclipseFactor: { value: 0.0 },
+        moonShadowDir: { value: new THREE.Vector3(0, 0, 1) },
       },
       vertexShader: `
         varying vec2 vUv;
@@ -731,6 +792,8 @@ export default function SolarSystemInteractiveGame() {
         uniform sampler2D nightTexture;
         uniform sampler2D specularMap;
         uniform vec3 sunDirection;
+        uniform float eclipseFactor;
+        uniform vec3 moonShadowDir;
         varying vec2 vUv;
         varying vec3 vWorldNormal;
         varying vec3 vWorldPosition;
@@ -751,6 +814,15 @@ export default function SolarSystemInteractiveGame() {
           // Bright, crisp daylight side with direct solar radiance
           vec3 litDay = dayColor.rgb * (1.18 + max(0.0, NdotL) * 0.45);
           vec3 mixedColor = mix(nightLights, litDay, dayFactor);
+
+          // Solar eclipse lunar umbra and penumbra projection
+          if (eclipseFactor > 0.0) {
+            float moonAlign = dot(norm, normalize(moonShadowDir));
+            if (moonAlign > 0.94) {
+              float shadowIntensity = smoothstep(0.94, 0.992, moonAlign) * eclipseFactor;
+              mixedColor *= (1.0 - shadowIntensity * 0.92);
+            }
+          }
           
           // Ocean specular sun glint in world space
           vec3 viewDir = normalize(cameraPosition - vWorldPosition);
@@ -927,6 +999,7 @@ export default function SolarSystemInteractiveGame() {
           }
 
           if (planet.id === 'saturn') {
+            saturnBodyMeshRef.current = body;
             const ringTex = textureLoader.load('/textures/planets/saturn_ring.png');
             ringTex.colorSpace = THREE.SRGBColorSpace;
             const ringMat = new THREE.MeshStandardMaterial({
@@ -936,6 +1009,37 @@ export default function SolarSystemInteractiveGame() {
               opacity: 0.92,
               roughness: 0.5,
             });
+            ringMat.onBeforeCompile = (shader) => {
+              shader.uniforms.saturnWorldPos = { value: new THREE.Vector3() };
+              shader.uniforms.saturnRadius = { value: planet.sizeRadius };
+              shader.vertexShader = `
+                varying vec3 vRingWorldPos;
+                ${shader.vertexShader}
+              `.replace(
+                '#include <begin_vertex>',
+                `#include <begin_vertex>
+                 vRingWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;`
+              );
+              shader.fragmentShader = `
+                uniform vec3 saturnWorldPos;
+                uniform float saturnRadius;
+                varying vec3 vRingWorldPos;
+                ${shader.fragmentShader}
+              `.replace(
+                '#include <dithering_fragment>',
+                `#include <dithering_fragment>
+                 vec3 toSun = normalize(-saturnWorldPos);
+                 vec3 toPoint = vRingWorldPos - saturnWorldPos;
+                 float proj = dot(toPoint, toSun);
+                 if (proj < 0.0) {
+                   vec3 perp = toPoint - proj * toSun;
+                   if (length(perp) < saturnRadius * 1.02) {
+                     gl_FragColor.rgb *= 0.15;
+                   }
+                 }`
+              );
+              saturnRingShaderRef.current = shader;
+            };
             const rings = new THREE.Mesh(ringGeo, ringMat);
             rings.rotation.x = Math.PI / 2;
             tiltGroup.add(rings);
@@ -1547,6 +1651,29 @@ export default function SolarSystemInteractiveGame() {
           if (earthAtmoRef.current) {
             earthAtmoRef.current.uniforms.sunDirection.value.copy(poolSunDir);
           }
+
+          // Real-time Solar Eclipse Moon shadow projection
+          const moonItem = moonMeshes.find((m) => m.moon.id === 'moon');
+          if (moonItem) {
+            const moonWorldPos = new THREE.Vector3();
+            moonItem.mesh.getWorldPosition(moonWorldPos);
+            const moonRelDir = moonWorldPos.sub(poolEarthPos).normalize();
+            const align = moonRelDir.dot(poolSunDir);
+            const isEclipse = align > 0.984;
+            earthShaderMaterial.uniforms.eclipseFactor.value = isEclipse ? THREE.MathUtils.clamp((align - 0.984) / 0.012, 0.0, 1.0) : 0.0;
+            earthShaderMaterial.uniforms.moonShadowDir.value.copy(moonRelDir);
+            if (isEclipse !== isEclipseActiveRef.current) {
+              isEclipseActiveRef.current = isEclipse;
+              setIsEclipseActive(isEclipse);
+            }
+          }
+        }
+
+        // Saturn globe shadow onto rings
+        if (saturnRingShaderRef.current && saturnBodyMeshRef.current) {
+          const saturnWorldPos = new THREE.Vector3();
+          saturnBodyMeshRef.current.getWorldPosition(saturnWorldPos);
+          saturnRingShaderRef.current.uniforms.saturnWorldPos.value.copy(saturnWorldPos);
         }
 
         // Pulse Radar Pin on User GPS location
@@ -1602,6 +1729,7 @@ export default function SolarSystemInteractiveGame() {
 
   // Planet Focus
   const handleSelectPlanet = (planet: RealPlanetPhysics) => {
+    spaceAudio.playTelemetryBeep(640, 0.09);
     setSelectedPlanet(planet);
     setSelectedMoon(null);
     setIsEarthFocused(planet.id === 'earth');
@@ -1623,6 +1751,7 @@ export default function SolarSystemInteractiveGame() {
 
   // Focus directly onto the bright sunlit side of the selected planet or Earth
   const handleFocusSunlitSide = () => {
+    spaceAudio.playTelemetryBeep(840, 0.08);
     if (!sceneContextRef.current) return;
     const item = selectedPlanet
       ? sceneContextRef.current.planetMeshes.find((m) => m.planet.id === selectedPlanet.id)
@@ -1645,6 +1774,7 @@ export default function SolarSystemInteractiveGame() {
 
   // Moon Focus
   const handleSelectMoon = (moon: MoonData) => {
+    spaceAudio.playTelemetryBeep(980, 0.08);
     setSelectedMoon(moon);
     const parentPlanet = REAL_PLANETS_PHYSICS.find((p) => p.id === moon.parentId) || null;
     setSelectedPlanet(parentPlanet);
@@ -1660,6 +1790,7 @@ export default function SolarSystemInteractiveGame() {
 
   // Reset to Full Solar System
   const handleResetView = () => {
+    spaceAudio.playDeepSpacePulse();
     setSelectedPlanet(null);
     setIsEarthFocused(false);
     if (!sceneContextRef.current) return;
@@ -1879,13 +2010,23 @@ export default function SolarSystemInteractiveGame() {
             }}
           />
 
+          {/* Solar Eclipse Alert Banner */}
+          {isEclipseActive && (
+            <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 pointer-events-none animate-pulse">
+              <div className="bg-aeroamber/20 border border-aeroamber/60 backdrop-blur-md px-3.5 py-1.5 rounded-full text-aeroamber font-bold text-[10px] sm:text-xs tracking-wider flex items-center gap-2 shadow-lg shadow-aeroamber/20">
+                <span className="w-2 h-2 rounded-full bg-aeroamber animate-ping" />
+                <span>{language === 'km' ? 'សូរ្យគ្រាសពេញលេញកំពុងកើតឡើង (ស្រមោលព្រះច័ន្ទលើផែនដី)' : 'TOTAL SOLAR ECLIPSE ACTIVE (LUNAR UMBRA ON EARTH)'}</span>
+              </div>
+            </div>
+          )}
+
           {/* Desktop/Tablet Top Navigation Bar (Single Slim Row for screens >= 640px) */}
           <div className="hidden sm:flex absolute top-4 inset-x-4 z-20 items-center justify-between gap-2 pointer-events-none">
             {/* Brand */}
             <div className="pointer-events-auto flex items-center gap-2 bg-space-950/85 backdrop-blur-xl px-4 py-2 rounded-full border border-space-800 shadow-xl">
               <div className="w-2 h-2 rounded-full bg-aeroblue animate-pulse" />
               <span className="text-xs font-bold text-white tracking-widest uppercase">AEROVEX</span>
-              <span className="text-[10px] text-space-400">SOLAR SYSTEM</span>
+              <span className="text-[10px] text-space-400">{language === 'km' ? 'ប្រព័ន្ធព្រះអាទិត្យ 3D' : 'SOLAR SYSTEM'}</span>
             </div>
 
             {/* Center Mode Switcher Pill */}
@@ -1899,7 +2040,7 @@ export default function SolarSystemInteractiveGame() {
                 }`}
               >
                 <Sun className="w-3.5 h-3.5 text-aeroamber" />
-                <span>3D SOLAR SYSTEM</span>
+                <span>{language === 'km' ? 'ប្រព័ន្ធព្រះអាទិត្យ 3D' : '3D SOLAR SYSTEM'}</span>
               </button>
 
               <button
@@ -1908,12 +2049,57 @@ export default function SolarSystemInteractiveGame() {
                 title="Open authentic Google Maps Satellite View with 3D zoom dive"
               >
                 <Globe className="w-3.5 h-3.5" />
-                <span>EARTH SATELLITE MAP</span>
+                <span>{language === 'km' ? 'ផែនទីរណបផែនដី' : 'EARTH SATELLITE MAP'}</span>
               </button>
+
+              {onOpenKnowledgeTab && (
+                <button
+                  onClick={() => {
+                    spaceAudio.playTelemetryBeep(1100, 0.1);
+                    onOpenKnowledgeTab('observatory');
+                  }}
+                  className="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 bg-space-900 hover:bg-aerogreen text-aerogreen-light hover:text-space-950 border border-aerogreen/30 cursor-pointer"
+                  title="Open Deep Space Observatory & Science Encyclopedia"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>{language === 'km' ? 'បណ្ណសារវិទ្យាសាស្ត្រ' : 'SCIENCE ARCHIVES'}</span>
+                </button>
+              )}
             </div>
 
             {/* Right Controls Pill */}
             <div className="pointer-events-auto flex items-center gap-1.5 bg-space-950/85 backdrop-blur-xl px-2.5 py-1.5 rounded-full border border-space-800 shadow-xl text-xs">
+              <button
+                onClick={handleToggleAudio}
+                className={`p-1.5 rounded-full transition-colors cursor-pointer ${
+                  isAudioMuted ? 'text-space-500 hover:text-white' : 'text-aerogreen bg-aerogreen/15'
+                }`}
+                title={isAudioMuted ? (language === 'km' ? 'បើកសំឡេង' : 'Enable Audio') : (language === 'km' ? 'បិទសំឡេង' : 'Mute Audio')}
+              >
+                {isAudioMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+              </button>
+
+              <button
+                onClick={handleToggleConstellations}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-colors cursor-pointer ${
+                  showConstellations ? 'bg-aeroblue text-space-950' : 'text-space-500 hover:text-white'
+                }`}
+                title="Toggle Astronomical Constellations"
+              >
+                {language === 'km' ? 'ផ្កាយ' : 'STARS'}
+              </button>
+
+              <button
+                onClick={handleToggleLanguage}
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-space-900 hover:bg-space-800 text-aeroamber border border-aeroamber/30 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Toggle Language"
+              >
+                <Languages className="w-3 h-3 text-aeroamber" />
+                <span>{language === 'km' ? 'ខ្មែរ' : 'EN'}</span>
+              </button>
+
+              <div className="h-3 w-px bg-space-800" />
+
               <button
                 onClick={() => setIsPaused(!isPaused)}
                 className="p-1.5 rounded-full hover:bg-space-800 text-space-300 hover:text-white transition-colors cursor-pointer"
@@ -1921,8 +2107,6 @@ export default function SolarSystemInteractiveGame() {
               >
                 {isPaused ? <Play className="w-3.5 h-3.5 text-aerogreen" /> : <Pause className="w-3.5 h-3.5 text-aeroamber" />}
               </button>
-
-              <div className="h-3 w-px bg-space-800" />
 
               <button
                 onClick={() => setShowOrbits(!showOrbits)}
@@ -1987,22 +2171,49 @@ export default function SolarSystemInteractiveGame() {
             {/* Mobile Mode Switcher */}
             <div className="pointer-events-auto flex items-center gap-1 bg-space-950/90 backdrop-blur-xl p-0.5 rounded-full border border-space-800 shadow-xl">
               <button
+                onClick={handleToggleLanguage}
+                className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-space-900 text-aeroamber border border-aeroamber/30 cursor-pointer"
+              >
+                {language === 'km' ? 'ខ្មែរ' : 'EN'}
+              </button>
+
+              <button
+                onClick={handleToggleAudio}
+                className={`p-1 rounded-full cursor-pointer ${isAudioMuted ? 'text-space-500' : 'text-aerogreen'}`}
+              >
+                {isAudioMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+              </button>
+
+              <button
                 onClick={handleResetView}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
                   selectedPlanet === null ? 'bg-space-800 text-white shadow-sm' : 'text-space-400 hover:text-white'
                 }`}
               >
                 <Sun className="w-3 h-3 text-aeroamber" />
-                <span>3D SYSTEM</span>
+                <span>3D</span>
               </button>
 
               <button
                 onClick={() => triggerCinematicDiveToMaps(12.5657, 104.991, 7)}
-                className="px-2.5 py-1 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 bg-aeroblue/15 hover:bg-aeroblue text-aeroblue-light hover:text-space-950 border border-aeroblue/30 cursor-pointer"
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 bg-aeroblue/15 hover:bg-aeroblue text-aeroblue-light hover:text-space-950 border border-aeroblue/30 cursor-pointer"
               >
                 <Globe className="w-3 h-3" />
-                <span>EARTH MAP</span>
+                <span>MAP</span>
               </button>
+
+              {onOpenKnowledgeTab && (
+                <button
+                  onClick={() => {
+                    spaceAudio.playTelemetryBeep(1100, 0.1);
+                    onOpenKnowledgeTab('observatory');
+                  }}
+                  className="px-2 py-0.5 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 bg-aerogreen/15 text-aerogreen border border-aerogreen/30 cursor-pointer"
+                >
+                  <BookOpen className="w-3 h-3" />
+                  <span>INFO</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -2082,10 +2293,14 @@ export default function SolarSystemInteractiveGame() {
                 <div className="flex items-start justify-between">
                   <div>
                     <span className="text-[9px] px-2 py-0.5 rounded-full bg-aeroblue/15 text-aeroblue border border-aeroblue/30 font-bold uppercase tracking-wider">
-                      {selectedMoon ? `NATURAL SATELLITE OF ${selectedPlanet.name.split(' (')[0]}` : selectedPlanet.type.split(' (')[0]}
+                      {selectedMoon
+                        ? (language === 'km' ? `ព្រះច័ន្ទរណបរបស់ ${selectedPlanet.khmerName || selectedPlanet.name.split(' (')[0]}` : `NATURAL SATELLITE OF ${selectedPlanet.name.split(' (')[0]}`)
+                        : (language === 'km' ? (selectedPlanet.khmerType || selectedPlanet.type) : selectedPlanet.type.split(' (')[0])}
                     </span>
                     <h2 className="text-lg font-bold text-white mt-1 tracking-tight">
-                      {selectedMoon ? selectedMoon.name : selectedPlanet.name.split(' (')[0]}
+                      {selectedMoon
+                        ? (language === 'km' && selectedMoon.khmerName ? selectedMoon.khmerName : selectedMoon.name)
+                        : (language === 'km' && selectedPlanet.khmerName ? selectedPlanet.khmerName : selectedPlanet.name.split(' (')[0])}
                     </h2>
                   </div>
                   <button
@@ -2105,15 +2320,15 @@ export default function SolarSystemInteractiveGame() {
                 {selectedMoon && (
                   <div className="p-2.5 bg-space-900/80 rounded-xl border border-aeroblue/30 space-y-1 text-[10px]">
                     <div className="flex items-center justify-between">
-                      <span className="text-space-400">DIAMETER: <strong className="text-white">{selectedMoon.diameterKm.toLocaleString()} km</strong></span>
-                      <span className="text-aeroblue font-bold">ORBIT: {selectedMoon.periodDays}d</span>
+                      <span className="text-space-400">{language === 'km' ? 'អង្កត់ផ្ចិត:' : 'DIAMETER:'} <strong className="text-white">{selectedMoon.diameterKm.toLocaleString()} km</strong></span>
+                      <span className="text-aeroblue font-bold">{language === 'km' ? 'គន្លង:' : 'ORBIT:'} {selectedMoon.periodDays}d</span>
                     </div>
                     <p className="text-space-300 leading-snug">{selectedMoon.description}</p>
                     <button
                       onClick={() => handleSelectPlanet(selectedPlanet)}
                       className="text-[10px] text-aeroamber hover:underline font-bold pt-1 block cursor-pointer"
                     >
-                      RETURN TO {selectedPlanet.name.split(' (')[0].toUpperCase()}
+                      {language === 'km' ? `ត្រឡប់ទៅ ${selectedPlanet.khmerName || selectedPlanet.name.split(' (')[0]}` : `RETURN TO ${selectedPlanet.name.split(' (')[0].toUpperCase()}`}
                     </button>
                   </div>
                 )}
@@ -2121,19 +2336,19 @@ export default function SolarSystemInteractiveGame() {
                 {/* Compact 2x2 Grid */}
                 <div className="grid grid-cols-2 gap-1.5 text-[10px]">
                   <div className="p-2 bg-space-900/70 rounded-xl border border-space-850">
-                    <span className="text-space-400 block text-[9px]">DIAMETER</span>
+                    <span className="text-space-400 block text-[9px]">{language === 'km' ? 'អង្កត់ផ្ចិត' : 'DIAMETER'}</span>
                     <span className="text-white font-bold">{selectedPlanet.diameterKm.toLocaleString()} km</span>
                   </div>
                   <div className="p-2 bg-space-900/70 rounded-xl border border-space-850">
-                    <span className="text-space-400 block text-[9px]">SOLAR DISTANCE</span>
+                    <span className="text-space-400 block text-[9px]">{language === 'km' ? 'ចម្ងាយពីព្រះអាទិត្យ' : 'SOLAR DISTANCE'}</span>
                     <span className="text-white font-bold">{selectedPlanet.orbitRadiusAU} AU</span>
                   </div>
                   <div className="p-2 bg-space-900/70 rounded-xl border border-space-850">
-                    <span className="text-space-400 block text-[9px]">GRAVITY / TILT</span>
+                    <span className="text-space-400 block text-[9px]">{language === 'km' ? 'ទំនាញ / មុំលម្អៀង' : 'GRAVITY / TILT'}</span>
                     <span className="text-white font-bold">{selectedPlanet.surfaceGravityMs2} m/s² &bull; {selectedPlanet.axialTiltDeg}°</span>
                   </div>
                   <div className="p-2 bg-space-900/70 rounded-xl border border-space-850">
-                    <span className="text-space-400 block text-[9px]">MEAN TEMP</span>
+                    <span className="text-space-400 block text-[9px]">{language === 'km' ? 'សីតុណ្ហភាពមធ្យម' : 'MEAN TEMP'}</span>
                     <span className="text-white font-bold">{selectedPlanet.meanTempC}</span>
                   </div>
                 </div>
@@ -2142,7 +2357,7 @@ export default function SolarSystemInteractiveGame() {
                 {MAJOR_MOONS_DATA.some((m) => m.parentId === selectedPlanet.id) && (
                   <div className="space-y-1 pt-0.5">
                     <span className="text-[9px] text-space-400 uppercase font-bold block">
-                      MAJOR ORBITING MOONS (CLICK TO FOCUS 3D):
+                      {language === 'km' ? 'ព្រះច័ន្ទរណបធំៗ (ចុចដើម្បី ZOOM 3D):' : 'MAJOR ORBITING MOONS (CLICK TO FOCUS 3D):'}
                     </span>
                     <div className="flex flex-wrap gap-1">
                       {MAJOR_MOONS_DATA.filter((m) => m.parentId === selectedPlanet.id).map((m) => (
@@ -2155,7 +2370,7 @@ export default function SolarSystemInteractiveGame() {
                               : 'bg-space-900 hover:bg-space-800 text-space-200 border-space-800'
                           }`}
                         >
-                          {m.name.split(' (')[0]}
+                          {(language === 'km' && m.khmerName) ? m.khmerName.split(' (')[0] : m.name.split(' (')[0]}
                         </button>
                       ))}
                     </div>
@@ -2170,7 +2385,7 @@ export default function SolarSystemInteractiveGame() {
                       className="w-full py-2.5 px-3 rounded-xl bg-aeroblue hover:bg-aeroblue-light text-space-950 font-bold transition-all flex items-center justify-center gap-2 text-xs shadow-lg shadow-aeroblue/20 cursor-pointer"
                     >
                       <Globe className="w-4 h-4" />
-                      <span>VIEW IN GOOGLE MAPS</span>
+                      <span>{language === 'km' ? 'មើលលើផែនទីរណប GOOGLE MAPS' : 'VIEW IN GOOGLE MAPS'}</span>
                     </button>
 
                     <button
@@ -2178,7 +2393,7 @@ export default function SolarSystemInteractiveGame() {
                       className="w-full py-2 px-3 rounded-xl bg-space-900 hover:bg-space-850 text-aerogreen border border-aerogreen/30 font-bold transition-all flex items-center justify-center gap-2 text-[11px] cursor-pointer"
                     >
                       <Navigation className="w-3.5 h-3.5 text-aerogreen" />
-                      <span>PINPOINT MY GPS LOCATION</span>
+                      <span>{language === 'km' ? 'កំណត់ទីតាំង GPS របស់ខ្ញុំ' : 'PINPOINT MY GPS LOCATION'}</span>
                     </button>
 
                     <button
@@ -2186,7 +2401,7 @@ export default function SolarSystemInteractiveGame() {
                       className="w-full py-2 px-3 rounded-xl bg-space-900 hover:bg-space-850 text-aeroamber border border-aeroamber/30 font-bold transition-all flex items-center justify-center gap-2 text-[11px] cursor-pointer"
                     >
                       <Sun className="w-3.5 h-3.5 text-aeroamber" />
-                      <span>VIEW BRIGHT DAYLIGHT SIDE</span>
+                      <span>{language === 'km' ? 'មើលផ្នែកភ្លឺ (ពេលថ្ងៃ)' : 'VIEW BRIGHT DAYLIGHT SIDE'}</span>
                     </button>
 
                     {userLocation && (
@@ -2200,9 +2415,9 @@ export default function SolarSystemInteractiveGame() {
                       className="w-full py-2 px-3 mb-1 rounded-xl bg-space-900 hover:bg-space-850 text-aeroamber border border-aeroamber/30 font-bold transition-all flex items-center justify-center gap-2 text-[11px] cursor-pointer"
                     >
                       <Sun className="w-3.5 h-3.5 text-aeroamber" />
-                      <span>VIEW BRIGHT DAYLIGHT SIDE</span>
+                      <span>{language === 'km' ? 'មើលផ្នែកភ្លឺ (ពេលថ្ងៃ)' : 'VIEW BRIGHT DAYLIGHT SIDE'}</span>
                     </button>
-                    <div className="text-[10px] text-space-400 uppercase font-bold">ATMOSPHERE:</div>
+                    <div className="text-[10px] text-space-400 uppercase font-bold">{language === 'km' ? 'បរិយាកាស:' : 'ATMOSPHERE:'}</div>
                     <div className="flex flex-wrap gap-1">
                       {selectedPlanet.atmosphere.slice(0, 3).map((gas, i) => (
                         <span key={i} className="px-2 py-0.5 rounded-full bg-space-900 text-space-300 text-[10px] border border-space-800">
@@ -2211,7 +2426,9 @@ export default function SolarSystemInteractiveGame() {
                       ))}
                     </div>
                     <p className="text-[10px] text-space-400 leading-relaxed line-clamp-2 pt-1">
-                      {selectedPlanet.physicsHighlights[0]}
+                      {(language === 'km' && selectedPlanet.khmerPhysicsHighlights)
+                        ? selectedPlanet.khmerPhysicsHighlights[0]
+                        : selectedPlanet.physicsHighlights[0]}
                     </p>
                   </div>
                 )}
@@ -2231,7 +2448,7 @@ export default function SolarSystemInteractiveGame() {
                 }`}
               >
                 <Sun className="w-3.5 h-3.5 text-aeroamber" />
-                <span>THE SUN</span>
+                <span>{language === 'km' ? 'ព្រះអាទិត្យ' : 'THE SUN'}</span>
               </button>
 
               {REAL_PLANETS_PHYSICS.map((planet) => {
@@ -2251,7 +2468,7 @@ export default function SolarSystemInteractiveGame() {
                       className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: planet.colorHex }}
                     />
-                    <span>{planet.name.split(' (')[0]}</span>
+                    <span>{(language === 'km' && planet.khmerName) ? planet.khmerName.split(' (')[0] : planet.name.split(' (')[0]}</span>
                   </button>
                 );
               })}
