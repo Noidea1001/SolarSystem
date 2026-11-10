@@ -5,6 +5,12 @@ export const metadata: Metadata = {
   title: 'Aerovex Solar OS | 3D Interactive Solar System & Planetary Science Explorer',
   description:
     'Full-screen 3D interactive Solar System space simulation game and educational astronomy platform with real planetary orbits and Earth geolocation.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Aerovex Space',
+  },
 };
 
 export const viewport: Viewport = {
