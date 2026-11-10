@@ -1,6 +1,7 @@
 export interface MoonData {
   id: string;
   name: string;
+  khmerName?: string;
   parentId: string;
   radius3D: number;
   orbitRadius3D: number;
@@ -25,8 +26,10 @@ export interface SpacecraftData {
 export interface CelestialBodyPhysics {
   id: string;
   name: string;
+  khmerName?: string;
   category: 'planet' | 'dwarf_planet' | 'comet';
   type: string;
+  khmerType?: string;
   sizeRadius: number;
   orbitRadiusAU: number;
   orbitRadius3D: number;
@@ -53,14 +56,17 @@ export interface CelestialBodyPhysics {
   hasCometTail?: boolean;
   atmosphere: string[];
   physicsHighlights: string[];
+  khmerPhysicsHighlights?: string[];
 }
 
 export const CELESTIAL_BODIES_PHYSICS: CelestialBodyPhysics[] = [
   {
     id: 'mercury',
     name: 'Mercury',
+    khmerName: 'ភពពុធ (Mercury)',
     category: 'planet',
     type: 'Terrestrial Planet (Innermost)',
+    khmerType: 'ភពថ្ម (ជិតព្រះអាទិត្យជាងគេ)',
     sizeRadius: 0.38,
     orbitRadiusAU: 0.387,
     orbitRadius3D: 9.5,
@@ -86,12 +92,19 @@ export const CELESTIAL_BODIES_PHYSICS: CelestialBodyPhysics[] = [
       '3:2 spin-orbit resonance: rotates 3 times for every 2 orbits around the Sun',
       'Massive metallic core accounts for 85% of total planetary radius',
     ],
+    khmerPhysicsHighlights: [
+      'ល្បឿនគោចរលឿនជាងគេក្នុងប្រព័ន្ធព្រះអាទិត្យ: 47.36 គម/វិនាទី',
+      'វិលជុំខ្លួនឯង 3 ដងរៀងរាល់ពេលវិលជុំព្រះអាទិត្យបាន 2 ជុំ',
+      'ស្នូលលោហៈដ៏ធំសម្បើមក្តោបយក 85% នៃកាំភពសរុប',
+    ],
   },
   {
     id: 'venus',
     name: 'Venus',
+    khmerName: 'ភពសុក្រ (Venus)',
     category: 'planet',
     type: 'Terrestrial Planet (Runaway Greenhouse)',
+    khmerType: 'ភពថ្ម (កម្តៅខ្ពស់បំផុត)',
     sizeRadius: 0.95,
     orbitRadiusAU: 0.723,
     orbitRadius3D: 15.0,
@@ -117,12 +130,19 @@ export const CELESTIAL_BODIES_PHYSICS: CelestialBodyPhysics[] = [
       'Atmospheric surface pressure: 9.2 MPa (92 atmospheres)',
       'Super-rotation: upper cloud layers circle the planet in just 4 Earth days',
     ],
+    khmerPhysicsHighlights: [
+      'រង្វិលច្រាសទិស: ព្រះអាទិត្យរះនៅទិសខាងលិច និងលិចនៅទិសខាងកើត',
+      'សម្ពាធបរិយាកាសលើផ្ទៃខ្ពស់ដល់ 92 ដងនៃផែនដី',
+      'ពពកកម្រិតខ្ពស់វិលជុំភពក្នុងរយៈពេលត្រឹមតែ 4 ថ្ងៃនៃផែនដី',
+    ],
   },
   {
     id: 'earth',
     name: 'Earth (Terra)',
+    khmerName: 'ភពផែនដី (Earth)',
     category: 'planet',
     type: 'Terrestrial Ocean Planet (Biosphere)',
+    khmerType: 'ភពថ្មមហាសមុទ្រ (មានជីវិត)',
     sizeRadius: 1.0,
     orbitRadiusAU: 1.0,
     orbitRadius3D: 22.0,
@@ -148,12 +168,19 @@ export const CELESTIAL_BODIES_PHYSICS: CelestialBodyPhysics[] = [
       'Active dipolar magnetosphere deflects solar wind plasma',
       '71% liquid water surface with active plate tectonics and biosphere',
     ],
+    khmerPhysicsHighlights: [
+      'មុំលម្អៀង 23.44° បង្កើតឱ្យមានរដូវកាលទៀងទាត់ទាំងពីរអឌ្ឍគោល',
+      'ដែនម៉ាញេទិចការពារភពពីខ្យល់ព្រះអាទិត្យ និងវិទ្យុសកម្មអវកាស',
+      'ផ្ទៃទឹក 71% និងជាជម្រកតែមួយគត់ដែលស្គាល់ថាមានជីវិតរស់នៅ',
+    ],
   },
   {
     id: 'mars',
     name: 'Mars',
+    khmerName: 'ភពព្រះអង្គារ (Mars)',
     category: 'planet',
     type: 'Terrestrial Planet (Iron Oxide Surface)',
+    khmerType: 'ភពថ្មក្រហម (មានអុកស៊ីតដែក)',
     sizeRadius: 0.53,
     orbitRadiusAU: 1.524,
     orbitRadius3D: 30.0,
@@ -179,12 +206,19 @@ export const CELESTIAL_BODIES_PHYSICS: CelestialBodyPhysics[] = [
       '25.19° axial tilt produces Earth-like seasonal polar CO2 ice cap cycles',
       'Target of Perseverance, Curiosity, and human exploration architectures',
     ],
+    khmerPhysicsHighlights: [
+      'ទីតាំងភ្នំភ្លើង Olympus Mons កម្ពស់ 21.9 គម ខ្ពស់ជាងគេក្នុងប្រព័ន្ធព្រះអាទិត្យ',
+      'មុំលម្អៀង 25.19° ស្រដៀងនឹងផែនដី និងមានផ្ទាំងទឹកកកស្ងួតនៅប៉ូល',
+      'គោលដៅរុករកដោយមនុស្សយន្ត Perseverance និង Curiosity',
+    ],
   },
   {
     id: 'ceres',
     name: 'Ceres',
+    khmerName: 'អាចម៍ផ្កាយសេរេស (Ceres)',
     category: 'dwarf_planet',
     type: 'Dwarf Planet (Main Asteroid Belt)',
+    khmerType: 'ភពមនុស្សតឿ (ខ្សែក្រវាត់អាចម៍ផ្កាយ)',
     sizeRadius: 0.24,
     orbitRadiusAU: 2.766,
     orbitRadius3D: 37.5,
@@ -210,12 +244,19 @@ export const CELESTIAL_BODIES_PHYSICS: CelestialBodyPhysics[] = [
       'Explored by NASA Dawn mission revealing bright sodium carbonate deposits in Occator Crater',
       'Contains a subsurface brine reservoir beneath an icy crust',
     ],
+    khmerPhysicsHighlights: [
+      'តួអង្គធំបំផុតក្នុងខ្សែក្រវាត់អាចម៍ផ្កាយចន្លោះភពព្រះអង្គារ និងភពព្រហស្បតិ៍',
+      'បេសកកម្ម Dawn របស់ NASA បានរកឃើញសារធាតុអំបិលភ្លឺច្បាស់ក្នុងរណ្តៅ Occator',
+      'មានស្រទាប់ទឹកប្រៃរាវនៅក្រោមសំបកទឹកកក',
+    ],
   },
   {
     id: 'jupiter',
     name: 'Jupiter',
+    khmerName: 'ភពព្រហស្បតិ៍ (Jupiter)',
     category: 'planet',
     type: 'Gas Giant (Jovian System)',
+    khmerType: 'ភពឧស្ម័នយក្ស (ធំបំផុត)',
     sizeRadius: 2.55,
     orbitRadiusAU: 5.203,
     orbitRadius3D: 46.0,
@@ -240,12 +281,19 @@ export const CELESTIAL_BODIES_PHYSICS: CelestialBodyPhysics[] = [
       'Great Red Spot is a high-pressure anticyclonic storm larger than Earth',
       'Metallic hydrogen interior generates the largest planetary magnetosphere',
     ],
+    khmerPhysicsHighlights: [
+      'វិលជុំខ្លួនឯងលឿនបំផុត (9 ម៉ោង 55 នាទី) បណ្តាលឱ្យប៉ោងនៅអេក្វាទ័រ',
+      'ចំណុចក្រហមយក្ស (Great Red Spot) ជាព្យុះសម្ពាធខ្ពស់ធំជាងផែនដី',
+      'ស្រទាប់អ៊ីដ្រូសែនលោហៈរាវនៅខាងក្នុងបង្កើតដែនម៉ាញេទិចធំបំផុត',
+    ],
   },
   {
     id: 'saturn',
     name: 'Saturn',
+    khmerName: 'ភពសៅរ៍ (Saturn)',
     category: 'planet',
     type: 'Gas Giant (Ringed System)',
+    khmerType: 'ភពឧស្ម័នយក្ស (ប្រព័ន្ធកងដ៏ធំ)',
     sizeRadius: 2.15,
     orbitRadiusAU: 9.537,
     orbitRadius3D: 62.0,
@@ -274,12 +322,19 @@ export const CELESTIAL_BODIES_PHYSICS: CelestialBodyPhysics[] = [
       'Mean density (0.687 g/cm³) is lower than liquid water',
       'North pole features a persistent 29,000 km wide hexagonal jet stream wave',
     ],
+    khmerPhysicsHighlights: [
+      'ប្រព័ន្ធកងដ៏ស្រស់ស្អាតលាតសន្ធឹង 282,000 គម ប៉ុន្តែកម្រាស់ត្រឹម 10 ទៅ 100 ម៉ែត្រប៉ុណ្ណោះ',
+      'ដង់ស៊ីតេមធ្យមស្រាលជាងទឹក (អាចអណ្តែតលើទឹកបាន)',
+      'ប៉ូលខាងជើងមានរលកខ្យល់ព្យុះរាងឆកោន (Hexagon) ទទឹង 29,000 គម',
+    ],
   },
   {
     id: 'uranus',
     name: 'Uranus',
+    khmerName: 'ភពអ៊ុយរ៉ានុស (Uranus)',
     category: 'planet',
     type: 'Ice Giant (Extreme Axial Tilt)',
+    khmerType: 'ភពទឹកកកយក្ស (រង្វិលទ្រេតផ្តេក)',
     sizeRadius: 1.55,
     orbitRadiusAU: 19.191,
     orbitRadius3D: 77.0,
@@ -308,12 +363,19 @@ export const CELESTIAL_BODIES_PHYSICS: CelestialBodyPhysics[] = [
       'Coldest planetary atmosphere in the Solar System (-224°C minimum)',
       'Superionic water, ammonia, and methane mantle surrounds a rocky core',
     ],
+    khmerPhysicsHighlights: [
+      'មុំលម្អៀង 97.77°: វិលទ្រេតផ្តេកស្ទើរស្មើគន្លង ធ្វើឱ្យរដូវកាលនៅប៉ូលមានរយៈពេល 42 ឆ្នាំ',
+      'បរិយាកាសភពត្រជាក់បំផុតក្នុងប្រព័ន្ធព្រះអាទិត្យ (ទាបដល់ -224°C)',
+      'ស្រទាប់កណ្តាលជាទឹកកក អាម៉ូញាក់ និងមេតាន ជុំវិញស្នូលថ្ម',
+    ],
   },
   {
     id: 'neptune',
     name: 'Neptune',
+    khmerName: 'ភពណិបទូន (Neptune)',
     category: 'planet',
     type: 'Ice Giant (Supersonic Winds)',
+    khmerType: 'ភពទឹកកកយក្ស (ខ្យល់ព្យុះលឿនបំផុត)',
     sizeRadius: 1.5,
     orbitRadiusAU: 30.069,
     orbitRadius3D: 91.0,
@@ -342,12 +404,19 @@ export const CELESTIAL_BODIES_PHYSICS: CelestialBodyPhysics[] = [
       'First planet predicted by mathematical orbital perturbation calculations before optical discovery',
       'Captive moon Triton orbits in a retrograde path and erupts nitrogen geysers',
     ],
+    khmerPhysicsHighlights: [
+      'មានខ្យល់ព្យុះលឿនជាងសំឡេងខ្លាំងបំផុតក្នុងប្រព័ន្ធព្រះអាទិត្យ ដល់ 2,100 គម/ម៉ោង',
+      'ភពដំបូងគេដែលត្រូវបានរកឃើញតាមរយៈការគណនាគណិតវិទ្យាមុនពេលឆ្លុះកែវយឹត',
+      'ព្រះច័ន្ទ Triton វិលច្រាសទិស និងមានបន្ទុះទឹកកកអាសូត',
+    ],
   },
   {
     id: 'pluto',
     name: 'Pluto',
+    khmerName: 'ភពភ្លុយតូ (Pluto)',
     category: 'dwarf_planet',
     type: 'Kuiper Belt Dwarf Planet',
+    khmerType: 'ភពមនុស្សតឿ (ខ្សែក្រវាត់គុយពែរ)',
     sizeRadius: 0.28,
     orbitRadiusAU: 39.482,
     orbitRadius3D: 104.0,
@@ -373,12 +442,19 @@ export const CELESTIAL_BODIES_PHYSICS: CelestialBodyPhysics[] = [
       'Sputnik Planitia is a vast nitrogen-ice glacier basin revealed by New Horizons',
       'Forms a binary system with Charon around a barycenter outside Pluto’s surface',
     ],
+    khmerPhysicsHighlights: [
+      'គន្លងទ្រេតខ្លាំង 17.16° និងមានទំនាក់ទំនង 2:3 ជាមួយភពណិបទូន',
+      'តំបន់ Sputnik Planitia ជាផ្ទាំងទឹកកកអាសូតដ៏ធំធេងដែលថតដោយ New Horizons',
+      'វិលជុំគ្នាជាមួយព្រះច័ន្ទ Charon ជុំវិញចំណុចកណ្តាលម៉ាស់នៅខាងក្រៅផ្ទៃភព',
+    ],
   },
   {
     id: 'halleys_comet',
     name: "Halley's Comet (1P/Halley)",
+    khmerName: "ផ្កាយដុះកន្ទុយហាឡេយ៍ (Halley's Comet)",
     category: 'comet',
     type: 'Periodic Comet (Ion & Dust Tail)',
+    khmerType: 'ផ្កាយដុះកន្ទុយទៀងទាត់ (កន្ទុយអ៊ីយ៉ុង និងធូលី)',
     sizeRadius: 0.22,
     orbitRadiusAU: 17.834,
     orbitRadius3D: 68.0,
@@ -404,6 +480,11 @@ export const CELESTIAL_BODIES_PHYSICS: CelestialBodyPhysics[] = [
       'Short-period retrograde orbit returning to the inner Solar System every 75-76 Earth years',
       'Intercepted and imaged up close by ESA Giotto spacecraft in 1986',
     ],
+    khmerPhysicsHighlights: [
+      'សម្ពាធវិទ្យុសកម្មនៃខ្យល់ព្រះអាទិត្យរុញកន្ទុយអ៊ីយ៉ុងឱ្យបែរចេញពីព្រះអាទិត្យជានិច្ច',
+      'គោចរត្រឡប់មកកាន់ប្រព័ន្ធព្រះអាទិត្យខាងក្នុងរៀងរាល់ 75 ទៅ 76 ឆ្នាំម្តង',
+      'ត្រូវបានថតរូបជិតបំផុតដោយយានអវកាស Giotto របស់ ESA នៅឆ្នាំ 1986',
+    ],
   },
 ];
 
@@ -411,6 +492,7 @@ export const MAJOR_MOONS_DATA: MoonData[] = [
   {
     id: 'moon',
     name: 'The Moon (Luna)',
+    khmerName: 'ព្រះច័ន្ទ (Moon)',
     parentId: 'earth',
     radius3D: 0.26,
     orbitRadius3D: 2.35,
@@ -422,6 +504,7 @@ export const MAJOR_MOONS_DATA: MoonData[] = [
   {
     id: 'io',
     name: 'Io',
+    khmerName: 'អ៊ីអូ (Io)',
     parentId: 'jupiter',
     radius3D: 0.22,
     orbitRadius3D: 3.6,
@@ -433,6 +516,7 @@ export const MAJOR_MOONS_DATA: MoonData[] = [
   {
     id: 'europa',
     name: 'Europa',
+    khmerName: 'អឺរ៉ុបា (Europa)',
     parentId: 'jupiter',
     radius3D: 0.2,
     orbitRadius3D: 4.4,
@@ -444,6 +528,7 @@ export const MAJOR_MOONS_DATA: MoonData[] = [
   {
     id: 'ganymede',
     name: 'Ganymede',
+    khmerName: 'ហ្គានីមីត (Ganymede)',
     parentId: 'jupiter',
     radius3D: 0.29,
     orbitRadius3D: 5.3,
@@ -455,6 +540,7 @@ export const MAJOR_MOONS_DATA: MoonData[] = [
   {
     id: 'callisto',
     name: 'Callisto',
+    khmerName: 'កាលីស្តូ (Callisto)',
     parentId: 'jupiter',
     radius3D: 0.26,
     orbitRadius3D: 6.3,
@@ -466,6 +552,7 @@ export const MAJOR_MOONS_DATA: MoonData[] = [
   {
     id: 'titan',
     name: 'Titan',
+    khmerName: 'ទីតាន (Titan)',
     parentId: 'saturn',
     radius3D: 0.28,
     orbitRadius3D: 5.8,
@@ -477,6 +564,7 @@ export const MAJOR_MOONS_DATA: MoonData[] = [
   {
     id: 'enceladus',
     name: 'Enceladus',
+    khmerName: 'អង់សេឡាដុស (Enceladus)',
     parentId: 'saturn',
     radius3D: 0.16,
     orbitRadius3D: 3.6,
