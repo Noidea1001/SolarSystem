@@ -10,9 +10,10 @@ import {
   Radio,
   BookOpen,
   Sparkles,
+  Orbit,
 } from 'lucide-react';
 
-export type ActiveTab = 'observatory' | 'planetary' | 'spacetech' | 'missions';
+export type ActiveTab = 'simulation' | 'observatory' | 'planetary' | 'spacetech' | 'missions';
 
 interface NavigationHeaderProps {
   activeTab: ActiveTab;
@@ -74,6 +75,18 @@ export default function NavigationHeader({
 
         {/* Navigation Tabs */}
         <nav className="flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none text-xs">
+          <button
+            onClick={() => onTabChange('simulation')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded font-medium transition-colors ${
+              activeTab === 'simulation'
+                ? 'bg-aeroblue text-space-950 font-bold shadow-md shadow-aeroblue/20'
+                : 'text-space-300 hover:text-white hover:bg-space-900 border border-transparent'
+            }`}
+          >
+            <Orbit className="w-3.5 h-3.5" />
+            <span>3D Solar System Simulation</span>
+          </button>
+
           <button
             onClick={() => onTabChange('observatory')}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded font-medium transition-colors ${
