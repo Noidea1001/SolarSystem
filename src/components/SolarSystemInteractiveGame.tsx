@@ -33,19 +33,27 @@ import {
   VolumeX,
   Languages,
   BookOpen,
+  Rocket,
+  FastForward,
+  SkipForward,
+  SkipBack,
+  Zap,
 } from 'lucide-react';
 
 import GoogleMapsEarthExplorer from './GoogleMapsEarthExplorer';
 import PlanetComparisonModal from './PlanetComparisonModal';
 import DistanceTelemetryPanel from './DistanceTelemetryPanel';
 import EphemerisTimeController from './EphemerisTimeController';
+import HohmannTransferSimulator from './HohmannTransferSimulator';
 import { spaceAudio } from '../utils/spaceAudio';
 import { buildConstellationLinesMesh } from '../utils/constellations';
 import {
   CELESTIAL_BODIES_PHYSICS,
   MAJOR_MOONS_DATA,
+  DEEP_SPACE_MISSIONS,
   CelestialBodyPhysics,
   MoonData,
+  SpacecraftData,
 } from '../data/celestialBodies';
 import {
   getDaysSinceJ2000,
@@ -332,6 +340,120 @@ const REAL_WORLD_COUNTRIES: CountryPoint[] = [
 type RealPlanetPhysics = CelestialBodyPhysics;
 const REAL_PLANETS_PHYSICS: RealPlanetPhysics[] = CELESTIAL_BODIES_PHYSICS;
 
+interface TourStep {
+  targetId: string;
+  type: 'planet' | 'sun';
+  cameraRadius: number;
+  phi: number;
+  titleEn: string;
+  titleKm: string;
+  descEn: string;
+  descKm: string;
+}
+
+const COSMIC_TOUR_STEPS: TourStep[] = [
+  {
+    targetId: 'sun',
+    type: 'sun',
+    cameraRadius: 18,
+    phi: 1.35,
+    titleEn: '1. The Sun (Sol) - The Solar Core',
+    titleKm: '១. ព្រះអាទិត្យ (Sol) - បេះដូងនៃប្រព័ន្ធព្រះអាទិត្យ',
+    descEn: 'Contains 99.86% of the solar system mass. Thermonuclear fusion converts 600M tons of hydrogen into helium every second.',
+    descKm: 'ក្តោបយក 99.86% នៃម៉ាសសរុប។ បំប្លែងអ៊ីដ្រូសែន 600 លានតោនទៅជាអេល្យូមរៀងរាល់វិនាទីតាមរយៈប្រតិកម្មនុយក្លេអ៊ែរផ្សំ។',
+  },
+  {
+    targetId: 'mercury',
+    type: 'planet',
+    cameraRadius: 3.2,
+    phi: 1.32,
+    titleEn: '2. Mercury - The Swift Cratered World',
+    titleKm: '២. ភពពុធ (Mercury) - ភពថ្មលឿនបំផុត',
+    descEn: 'Orbits in just 88 days with a 3:2 spin-orbit resonance. High iron metallic core occupies 85% of its planetary radius.',
+    descKm: 'វិលជុំព្រះអាទិត្យក្នុងរយៈពេលត្រឹមតែ 88 ថ្ងៃ។ ស្នូលដែកថែបដ៏ធំសម្បើមក្តោបយក 85% នៃកាំភព។',
+  },
+  {
+    targetId: 'venus',
+    type: 'planet',
+    cameraRadius: 4.5,
+    phi: 1.32,
+    titleEn: '3. Venus - Runaway Greenhouse Inferno',
+    titleKm: '៣. ភពសុក្រ (Venus) - នរកផ្ទះកញ្ចក់',
+    descEn: 'Hottest surface in the solar system (+464°C) beneath dense sulfuric acid clouds with 92 atmospheres of pressure.',
+    descKm: 'ផ្ទៃភពក្តៅបំផុត (+464°C) នៅក្រោមពពកអាស៊ីតស៊ុលផួរិកដ៏ក្រាស់ ជាមួយនឹងសម្ពាធបរិយាកាស 92 ដងនៃផែនដី។',
+  },
+  {
+    targetId: 'earth',
+    type: 'planet',
+    cameraRadius: 3.2,
+    phi: 1.35,
+    titleEn: '4. Earth & The Moon - The Oasis of Life',
+    titleKm: '៤. ភពផែនដី និងព្រះច័ន្ទ - ជម្រកនៃជីវិត',
+    descEn: 'Only known world with liquid surface water, active plate tectonics, oxygen-nitrogen atmosphere, and thriving biosphere.',
+    descKm: 'ពិភពតែមួយគត់ដែលស្គាល់ថាមានទឹកលើផ្ទៃ បន្ទះតិចតូនិចកម្រើក បរិយាកាសអុកស៊ីសែន-អាសូត និងជីវមណ្ឌលរស់នៅ។',
+  },
+  {
+    targetId: 'mars',
+    type: 'planet',
+    cameraRadius: 3.5,
+    phi: 1.32,
+    titleEn: '5. Mars - The Red Frontier',
+    titleKm: '៥. ភពព្រះអង្គារ (Mars) - ដែនដីក្រហម',
+    descEn: 'Home to Olympus Mons (21.9 km tall volcano) and dry river valleys explored by NASA Perseverance rover.',
+    descKm: 'ទីតាំងភ្នំភ្លើង Olympus Mons កម្ពស់ 21.9 គម និងជ្រលងទន្លេបុរាណដែលកំពុងរុករកដោយរ៉ូវ័រ Perseverance។',
+  },
+  {
+    targetId: 'jupiter',
+    type: 'planet',
+    cameraRadius: 10.5,
+    phi: 1.32,
+    titleEn: '6. Jupiter - The Giant Jovian Shield',
+    titleKm: '៦. ភពព្រហស្បតិ៍ (Jupiter) - ខែលយក្សការពារប្រព័ន្ធព្រះអាទិត្យ',
+    descEn: 'More massive than all other planets combined. The Great Red Spot is a giant anticyclonic storm larger than Earth.',
+    descKm: 'មានម៉ាសធំជាងគ្រប់ភពទាំងអស់បញ្ចូលគ្នា។ ចំណុចក្រហមយក្សជាព្យុះគួចសម្ពាធខ្ពស់ដែលមានទំហំធំជាងផែនដី។',
+  },
+  {
+    targetId: 'saturn',
+    type: 'planet',
+    cameraRadius: 9.8,
+    phi: 1.32,
+    titleEn: '7. Saturn - The Jewel of Rings',
+    titleKm: '៧. ភពសៅរ៍ (Saturn) - ត្បូងពេជ្រនៃប្រព័ន្ធកង',
+    descEn: 'Famous ice rings span 282,000 km across. Density is lower than liquid water, with a 29,000 km hexagonal polar jet wave.',
+    descKm: 'ប្រព័ន្ធកងទឹកកកលាតសន្ធឹង 282,000 គម។ ដង់ស៊ីតេស្រាលជាងទឹក និងមានរលកខ្យល់ព្យុះរាងឆកោននៅប៉ូលខាងជើង។',
+  },
+  {
+    targetId: 'uranus',
+    type: 'planet',
+    cameraRadius: 6.8,
+    phi: 1.32,
+    titleEn: '8. Uranus - The Tilted Ice Giant',
+    titleKm: '៨. ភពអ៊ុយរ៉ានុស (Uranus) - ភពទឹកកកវិលផ្តេក',
+    descEn: '97.8° axial obliquity causes extreme 42-year long polar seasons with temperatures dropping to -224°C.',
+    descKm: 'មុំលម្អៀង 97.8° ធ្វើឱ្យវិលផ្តេកជាមួយរដូវកាល 42 ឆ្នាំនៅប៉ូល និងសីតុណ្ហភាពធ្លាក់ចុះដល់ -224°C។',
+  },
+  {
+    targetId: 'neptune',
+    type: 'planet',
+    cameraRadius: 6.8,
+    phi: 1.32,
+    titleEn: '9. Neptune - The Supersonic Tempest',
+    titleKm: '៩. ភពណិបទូន (Neptune) - ព្យុះលឿនជាងសំឡេង',
+    descEn: 'Sustains 2,100 km/h supersonic winds. Its retrograde moon Triton erupts active nitrogen ice geysers.',
+    descKm: 'មានខ្យល់ព្យុះល្បឿន 2,100 គម/ម៉ោង។ ព្រះច័ន្ទ Triton វិលច្រាសទិស និងមានបន្ទុះទឹកកកអាសូតរាវ។',
+  },
+  {
+    targetId: 'pluto',
+    type: 'planet',
+    cameraRadius: 2.8,
+    phi: 1.32,
+    titleEn: '10. Pluto & Kuiper Belt - The Outer Frontier',
+    titleKm: '១០. ភពភ្លុយតូ និងខ្សែក្រវាត់គុយពែរ - ព្រំដែនខាងក្រៅ',
+    descEn: 'Heart-shaped nitrogen glacier Sputnik Planitia and gateway to the icy comets of the deep Kuiper Belt.',
+    descKm: 'ផ្ទាំងទឹកកកអាសូតរាងបេះដូង Sputnik Planitia និងជាច្រកទ្វារចូលទៅកាន់ខ្សែក្រវាត់អាចម៍ផ្កាយទឹកកកគុយពែរ។',
+  },
+];
+
 interface SolarSystemInteractiveGameProps {
   onOpenKnowledgeTab?: (tab: 'observatory' | 'planetary' | 'spacetech' | 'missions') => void;
 }
@@ -340,12 +462,15 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
   const mountRef = useRef<HTMLDivElement>(null);
   const [selectedPlanet, setSelectedPlanet] = useState<RealPlanetPhysics | null>(null);
   const [selectedMoon, setSelectedMoon] = useState<MoonData | null>(null);
+  const [selectedSpacecraft, setSelectedSpacecraft] = useState<SpacecraftData | null>(null);
+  const [showSpacecraftList, setShowSpacecraftList] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [simSpeed, setSimSpeed] = useState<number>(1);
   const [showOrbits, setShowOrbits] = useState(true);
   const [showAsteroidBelt, setShowAsteroidBelt] = useState(true);
   const [showComparator, setShowComparator] = useState(false);
   const [showDistanceRuler, setShowDistanceRuler] = useState(false);
+  const [showHohmannModal, setShowHohmannModal] = useState(false);
   const [rulerOriginId, setRulerOriginId] = useState<string>('earth');
   const [rulerTargetId, setRulerTargetId] = useState<string>('mars');
   const [simDateMs, setSimDateMs] = useState<number>(() => Date.now());
@@ -368,6 +493,15 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
   const isEclipseActiveRef = useRef(false);
   const saturnRingShaderRef = useRef<THREE.WebGLProgramParametersWithUniforms | null>(null);
   const saturnBodyMeshRef = useRef<THREE.Mesh | null>(null);
+
+  // Guided Cosmic Tour States
+  const [isCosmicTourActive, setIsCosmicTourActive] = useState(false);
+  const [tourStepIndex, setTourStepIndex] = useState(0);
+
+  // Solar CME (Coronal Mass Ejection) Wave States
+  const cmeMeshRef = useRef<THREE.Mesh | null>(null);
+  const cmeRadiusRef = useRef(4.2);
+  const [cmeFlash, setCmeFlash] = useState(false);
   useEffect(() => {
     isEarthFocusedRef.current = isEarthFocused;
   }, [isEarthFocused]);
@@ -584,6 +718,13 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
       orbitLine: THREE.Line;
       angle: number;
     }[];
+    spacecraftMeshes: {
+      mission: SpacecraftData;
+      pivot: THREE.Group;
+      mesh: THREE.Group;
+      orbitLine: THREE.Line;
+      angle: number;
+    }[];
     asteroidBeltMesh: THREE.InstancedMesh;
     kuiperBeltMesh: THREE.InstancedMesh;
     laserLineMesh: THREE.Line;
@@ -756,6 +897,21 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
     const sunFlareSprite = new THREE.Sprite(sunFlareMat);
     sunFlareSprite.scale.set(24, 24, 1);
     sunMesh.add(sunFlareSprite);
+
+    // Solar Coronal Mass Ejection (CME) Expanding Plasma Ring
+    const cmeGeo = new THREE.RingGeometry(4.1, 4.9, 64);
+    const cmeMat = new THREE.MeshBasicMaterial({
+      color: 0xf59e0b,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.65,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const cmeMesh = new THREE.Mesh(cmeGeo, cmeMat);
+    cmeMesh.rotation.x = Math.PI / 2;
+    scene.add(cmeMesh);
+    cmeMeshRef.current = cmeMesh;
 
     // 2. REAL EARTH WITH TRUE NASA 4K BLUE MARBLE & BLACK MARBLE SHADER
     const earthDayTex = textureLoader.load('/textures/planets/earth_day_4k.jpg');
@@ -1224,6 +1380,100 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
     laserLineMesh.visible = false;
     scene.add(laserLineMesh);
 
+    // 6. Build Active Human Spacecraft & Telescopes (ISS, JWST, Parker, Perseverance)
+    const spacecraftMeshes: any[] = [];
+    DEEP_SPACE_MISSIONS.forEach((mission) => {
+      const craftPivot = new THREE.Group();
+      craftPivot.rotation.z = (mission.orbitOffset3D.inclinationDeg * Math.PI) / 180;
+
+      const craftGroup = new THREE.Group();
+      const pts = new THREE.EllipseCurve(
+        0, 0,
+        mission.orbitOffset3D.r, mission.orbitOffset3D.r,
+        0, 2 * Math.PI, false, 0
+      ).getPoints(48);
+      const orbitGeo = new THREE.BufferGeometry().setFromPoints(
+        pts.map((p) => new THREE.Vector3(p.x, 0, p.y))
+      );
+      const orbitLine = new THREE.Line(
+        orbitGeo,
+        new THREE.LineBasicMaterial({
+          color: 0x10b981,
+          transparent: true,
+          opacity: 0.35,
+          depthWrite: false,
+        })
+      );
+      craftPivot.add(orbitLine);
+
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.3, metalness: 0.8 });
+      const solarMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.2, metalness: 0.5 });
+      const goldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.2, metalness: 0.9 });
+
+      if (mission.id === 'iss') {
+        const truss = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.16, 8), bodyMat);
+        truss.rotation.z = Math.PI / 2;
+        craftGroup.add(truss);
+        const wing1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.005, 0.05), solarMat);
+        wing1.position.set(-0.08, 0, 0);
+        craftGroup.add(wing1);
+        const wing2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.005, 0.05), solarMat);
+        wing2.position.set(0.08, 0, 0);
+        craftGroup.add(wing2);
+      } else if (mission.id === 'jwst') {
+        const mirror = new THREE.Mesh(new THREE.CircleGeometry(0.065, 6), goldMat);
+        mirror.rotation.y = Math.PI / 2;
+        craftGroup.add(mirror);
+        const shield = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.1), bodyMat);
+        shield.position.set(-0.02, -0.04, 0);
+        shield.rotation.x = Math.PI / 2;
+        craftGroup.add(shield);
+      } else if (mission.id === 'parker') {
+        const shield = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.01, 16), bodyMat);
+        shield.rotation.x = Math.PI / 2;
+        craftGroup.add(shield);
+        const bus = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.05), goldMat);
+        bus.position.set(0, 0, -0.035);
+        craftGroup.add(bus);
+      } else {
+        const roverBody = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.03, 0.06), bodyMat);
+        craftGroup.add(roverBody);
+        const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.04, 6), goldMat);
+        mast.position.set(0.015, 0.025, 0.02);
+        craftGroup.add(mast);
+      }
+
+      const beacon = new THREE.Mesh(
+        new THREE.SphereGeometry(0.018, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0x10b981 })
+      );
+      craftGroup.add(beacon);
+
+      craftGroup.position.set(mission.orbitOffset3D.r, 0, 0);
+      craftPivot.add(craftGroup);
+
+      if (mission.targetBodyId === 'earth' && earthBodyGroup) {
+        earthBodyGroup.add(craftPivot);
+      } else if (mission.targetBodyId === 'sun') {
+        scene.add(craftPivot);
+      } else {
+        const targetP = planetMeshes.find((p) => p.planet.id === mission.targetBodyId);
+        if (targetP) {
+          targetP.tiltGroup.add(craftPivot);
+        } else {
+          scene.add(craftPivot);
+        }
+      }
+
+      spacecraftMeshes.push({
+        mission,
+        pivot: craftPivot,
+        mesh: craftGroup,
+        orbitLine,
+        angle: 0,
+      });
+    });
+
     sceneContextRef.current = {
       scene,
       camera,
@@ -1237,6 +1487,7 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
       userPinMesh: userPinGroup,
       planetMeshes,
       moonMeshes,
+      spacecraftMeshes,
       asteroidBeltMesh,
       kuiperBeltMesh,
       laserLineMesh,
@@ -1347,6 +1598,17 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
         if (hits.length > 0) {
           handleSelectMoon(mItem.moon);
           return;
+        }
+      }
+
+      // Check click on Active Human Spacecraft
+      if (sceneContextRef.current.spacecraftMeshes) {
+        for (const scItem of sceneContextRef.current.spacecraftMeshes) {
+          const hits = raycaster.intersectObjects(scItem.mesh.children);
+          if (hits.length > 0) {
+            handleSelectSpacecraft(scItem.mission);
+            return;
+          }
         }
       }
 
@@ -1518,6 +1780,7 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
           coronaMesh,
           planetMeshes,
           moonMeshes,
+          spacecraftMeshes,
           asteroidBeltMesh,
           kuiperBeltMesh,
           laserLineMesh,
@@ -1600,6 +1863,35 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
           }
           mItem.orbitLine.visible = orbitsVisible;
         });
+
+        // Orbit Active Spacecraft & Satellite Telemetry (ISS, JWST, Parker, Perseverance)
+        if (spacecraftMeshes) {
+          spacecraftMeshes.forEach((sc) => {
+            if (!paused) {
+              const scDelta = (deltaRealSec * speed) * 0.22 * sc.mission.orbitOffset3D.speed;
+              sc.angle += scDelta;
+              sc.mesh.position.set(
+                Math.cos(sc.angle) * sc.mission.orbitOffset3D.r,
+                0,
+                Math.sin(sc.angle) * sc.mission.orbitOffset3D.r
+              );
+              sc.mesh.rotation.y = sc.angle;
+            }
+            sc.orbitLine.visible = orbitsVisible;
+          });
+        }
+
+        // Animate Solar Coronal Mass Ejection (CME) shockwave wavefront
+        if (cmeMeshRef.current) {
+          cmeRadiusRef.current += (deltaRealSec * Math.min(speed, 25)) * 2.5;
+          if (cmeRadiusRef.current > 42.0) {
+            cmeRadiusRef.current = 1.6;
+          }
+          const cmeScale = cmeRadiusRef.current;
+          cmeMeshRef.current.scale.set(cmeScale, cmeScale, cmeScale);
+          const cmeAlpha = Math.max(0.0, 1.0 - cmeRadiusRef.current / 42.0) * 0.45;
+          (cmeMeshRef.current.material as THREE.MeshBasicMaterial).opacity = cmeAlpha;
+        }
 
         // Update 3D Interplanetary Laser Telemetry Line
         if (showDistanceRulerRef.current) {
@@ -1792,12 +2084,101 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
   const handleResetView = () => {
     spaceAudio.playDeepSpacePulse();
     setSelectedPlanet(null);
+    setSelectedMoon(null);
+    setSelectedSpacecraft(null);
     setIsEarthFocused(false);
     if (!sceneContextRef.current) return;
     sceneContextRef.current.targetedMesh = null;
     sceneContextRef.current.spherical.radius = 75;
     sceneContextRef.current.spherical.theta = 0.52;
     sceneContextRef.current.spherical.phi = 1.38;
+  };
+
+  // Spacecraft Focus & Telemetry
+  const handleSelectSpacecraft = (craft: SpacecraftData) => {
+    spaceAudio.playTelemetryBeep(1150, 0.08);
+    setSelectedSpacecraft(craft);
+    setSelectedPlanet(null);
+    setSelectedMoon(null);
+    setIsEarthFocused(false);
+
+    if (!sceneContextRef.current || !sceneContextRef.current.spacecraftMeshes) return;
+    const item = sceneContextRef.current.spacecraftMeshes.find((s: any) => s.mission.id === craft.id);
+    if (item) {
+      sceneContextRef.current.targetedMesh = item.mesh;
+      sceneContextRef.current.spherical.radius = 1.35;
+      sceneContextRef.current.spherical.phi = 1.25;
+      sceneContextRef.current.spherical.theta = item.angle + 0.35;
+    }
+  };
+
+  // Trigger Dynamic Solar Coronal Mass Ejection (CME) shockwave blast
+  const handleTriggerCme = () => {
+    spaceAudio.playDeepSpacePulse();
+    cmeRadiusRef.current = 1.8;
+    setCmeFlash(true);
+    setTimeout(() => setCmeFlash(false), 900);
+  };
+
+  // Guided Cosmic Tour Navigation
+  const applyCosmicTourStep = (stepIdx: number) => {
+    const step = COSMIC_TOUR_STEPS[stepIdx];
+    if (!step || !sceneContextRef.current) return;
+
+    if (step.type === 'sun') {
+      setSelectedPlanet(null);
+      setSelectedMoon(null);
+      setSelectedSpacecraft(null);
+      setIsEarthFocused(false);
+      sceneContextRef.current.targetedMesh = sceneContextRef.current.sunMesh;
+      sceneContextRef.current.spherical.radius = step.cameraRadius;
+      sceneContextRef.current.spherical.phi = step.phi;
+      sceneContextRef.current.spherical.theta = 0.85;
+    } else {
+      const p = REAL_PLANETS_PHYSICS.find((item) => item.id === step.targetId);
+      if (p) {
+        setSelectedPlanet(p);
+        setSelectedMoon(null);
+        setSelectedSpacecraft(null);
+        setIsEarthFocused(p.id === 'earth');
+        const m = sceneContextRef.current.planetMeshes.find((item) => item.planet.id === p.id);
+        if (m) {
+          sceneContextRef.current.targetedMesh = m.body;
+          sceneContextRef.current.spherical.radius = step.cameraRadius;
+          sceneContextRef.current.spherical.phi = step.phi;
+          const pPos = new THREE.Vector3();
+          m.body.getWorldPosition(pPos);
+          const sunAngle = Math.atan2(-pPos.x, -pPos.z);
+          sceneContextRef.current.spherical.theta = sunAngle + 0.25;
+        }
+      }
+    }
+  };
+
+  const handleStartCosmicTour = () => {
+    spaceAudio.playTelemetryBeep(920, 0.12);
+    setIsCosmicTourActive(true);
+    setTourStepIndex(0);
+    applyCosmicTourStep(0);
+  };
+
+  const handleNextTourStep = () => {
+    const nextIdx = (tourStepIndex + 1) % COSMIC_TOUR_STEPS.length;
+    spaceAudio.playTelemetryBeep(960, 0.08);
+    setTourStepIndex(nextIdx);
+    applyCosmicTourStep(nextIdx);
+  };
+
+  const handlePrevTourStep = () => {
+    const prevIdx = (tourStepIndex - 1 + COSMIC_TOUR_STEPS.length) % COSMIC_TOUR_STEPS.length;
+    spaceAudio.playTelemetryBeep(820, 0.08);
+    setTourStepIndex(prevIdx);
+    applyCosmicTourStep(prevIdx);
+  };
+
+  const handleExitCosmicTour = () => {
+    setIsCosmicTourActive(false);
+    handleResetView();
   };
 
   // Cinematic Low Earth Orbit Sunrise Horizon View (Matching photo)
@@ -2008,7 +2389,113 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
                 setIsRealTimeLive(false);
               }
             }}
+            onToggleSpacecraft={() => setShowSpacecraftList(!showSpacecraftList)}
+            isSpacecraftActive={showSpacecraftList || selectedSpacecraft !== null}
           />
+
+          {/* Active Human Spacecraft & Satellite Selector Dropdown */}
+          {showSpacecraftList && (
+            <div className="absolute top-22 sm:top-28 left-2 sm:left-4 z-30 pointer-events-auto w-[calc(100vw-1rem)] max-w-sm bg-space-950/95 backdrop-blur-xl p-3 sm:p-4 rounded-2xl border border-space-800 shadow-2xl font-mono text-xs text-white space-y-2.5 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between pb-1 border-b border-space-800">
+                <div className="flex items-center gap-2">
+                  <Rocket className="w-4 h-4 text-aeroblue" />
+                  <span className="font-bold uppercase tracking-wider text-[11px]">
+                    {language === 'km' ? 'យានអវកាស និងរណបសកម្ម 3D' : 'ACTIVE SPACECRAFT &amp; SATELLITES'}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowSpacecraftList(false)}
+                  className="p-1 rounded-full text-space-400 hover:text-white hover:bg-space-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                {DEEP_SPACE_MISSIONS.map((craft) => (
+                  <button
+                    key={craft.id}
+                    onClick={() => {
+                      handleSelectSpacecraft(craft);
+                      setShowSpacecraftList(false);
+                    }}
+                    className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                      selectedSpacecraft?.id === craft.id
+                        ? 'bg-aeroblue/15 border-aeroblue text-white'
+                        : 'bg-space-900/70 hover:bg-space-850 border-space-800 text-space-300 hover:text-white'
+                    }`}
+                  >
+                    <div>
+                      <div className="font-bold text-xs text-white flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-aerogreen" />
+                        <span>{language === 'km' && craft.khmerName ? craft.khmerName : craft.name}</span>
+                      </div>
+                      <div className="text-[10px] text-space-400">
+                        {language === 'km' && craft.khmerAgency ? craft.khmerAgency : craft.agency} &bull; {craft.targetBodyId.toUpperCase()}
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <span className="text-[10px] text-aeroblue font-bold block">{craft.launchYear}</span>
+                      <span className="text-[9px] text-aerogreen font-semibold">ACTIVE</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Guided Cosmic Tour Subtitle Banner */}
+          {isCosmicTourActive && (
+            <div className="absolute top-16 sm:top-20 inset-x-2 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-30 pointer-events-auto max-w-xl w-full animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="bg-space-950/95 backdrop-blur-xl px-4 py-3 rounded-2xl border border-aerogreen/50 shadow-2xl shadow-aerogreen/10 text-white font-mono space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full bg-aerogreen/20 border border-aerogreen/40 text-aerogreen text-[10px] font-bold">
+                      {language === 'km' ? `ដំណាក់កាលទី ${tourStepIndex + 1} / ${COSMIC_TOUR_STEPS.length}` : `TOUR STEP ${tourStepIndex + 1} / ${COSMIC_TOUR_STEPS.length}`}
+                    </span>
+                    <span className="text-xs font-bold text-white tracking-wide">
+                      {language === 'km' ? COSMIC_TOUR_STEPS[tourStepIndex].titleKm : COSMIC_TOUR_STEPS[tourStepIndex].titleEn}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={handlePrevTourStep}
+                      className="p-1.5 rounded-lg bg-space-900 hover:bg-space-800 text-space-300 hover:text-white transition-colors cursor-pointer"
+                      title="Previous Step"
+                    >
+                      <SkipBack className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={handleNextTourStep}
+                      className="p-1.5 rounded-lg bg-aerogreen/20 hover:bg-aerogreen text-aerogreen hover:text-space-950 font-bold transition-colors cursor-pointer"
+                      title="Next Step"
+                    >
+                      <SkipForward className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={handleExitCosmicTour}
+                      className="p-1.5 rounded-lg bg-space-900 hover:bg-space-800 text-space-400 hover:text-white transition-colors cursor-pointer"
+                      title="Exit Cosmic Tour"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+                <p className="text-[11px] text-space-300 leading-relaxed">
+                  {language === 'km' ? COSMIC_TOUR_STEPS[tourStepIndex].descKm : COSMIC_TOUR_STEPS[tourStepIndex].descEn}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Dynamic CME Solar Wind Flare Wave Overlay */}
+          {cmeFlash && (
+            <div className="absolute inset-0 pointer-events-none z-30 bg-gradient-radial from-aeroamber/30 via-aeroamber/10 to-transparent animate-pulse flex items-center justify-center">
+              <div className="bg-space-950/90 border border-aeroamber px-6 py-2 rounded-full text-aeroamber font-bold text-xs tracking-widest shadow-2xl">
+                {language === 'km' ? 'បន្ទុះព្រះអាទិត្យ CME កំពុងបាញ់រលកផ្លាស្មាឆ្លងកាត់ប្រព័ន្ធព្រះអាទិត្យ' : 'SOLAR CORONAL MASS EJECTION (CME) PROPAGATING'}
+              </div>
+            </div>
+          )}
 
           {/* Solar Eclipse Alert Banner */}
           {isEclipseActive && (
@@ -2148,6 +2635,35 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
                 <span>COMPARE</span>
               </button>
 
+              <button
+                onClick={handleStartCosmicTour}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-colors flex items-center gap-1 cursor-pointer ${
+                  isCosmicTourActive ? 'bg-aerogreen text-space-950' : 'text-space-300 hover:text-white hover:bg-space-800'
+                }`}
+                title="Guided 10-Step Cosmic Solar Tour"
+              >
+                <FastForward className="w-3 h-3 text-aerogreen" />
+                <span>TOUR</span>
+              </button>
+
+              <button
+                onClick={handleTriggerCme}
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold text-aeroamber hover:text-white hover:bg-space-800 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Simulate Solar Coronal Mass Ejection (CME) Wave Blast"
+              >
+                <Zap className="w-3 h-3 text-aeroamber" />
+                <span>CME</span>
+              </button>
+
+              <button
+                onClick={() => setShowHohmannModal(true)}
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold text-aeroblue hover:text-white hover:bg-space-800 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Hohmann Transfer Orbit & Delta-V Trajectory Simulator"
+              >
+                <Rocket className="w-3 h-3 text-aeroblue" />
+                <span>HOHMANN</span>
+              </button>
+
               <div className="h-3 w-px bg-space-800" />
 
               <button
@@ -2228,6 +2744,24 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
             </button>
 
             <button
+              onClick={handleStartCosmicTour}
+              className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold transition-colors cursor-pointer ${
+                isCosmicTourActive ? 'bg-aerogreen text-space-950' : 'text-space-400 hover:text-white'
+              }`}
+              title="Cosmic Tour"
+            >
+              TOUR
+            </button>
+
+            <button
+              onClick={() => setShowHohmannModal(true)}
+              className="p-1 rounded-full text-aeroblue hover:bg-space-800 transition-colors cursor-pointer"
+              title="Hohmann Simulator"
+            >
+              <Rocket className="w-3 h-3" />
+            </button>
+
+            <button
               onClick={() => setShowOrbits(!showOrbits)}
               className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold transition-colors cursor-pointer ${
                 showOrbits ? 'bg-space-800 text-aeroblue' : 'text-space-500 hover:text-white'
@@ -2283,6 +2817,72 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
               onClose={() => setShowComparator(false)}
               onFocusPlanet={handleSelectPlanet}
             />
+          )}
+
+          {/* Hohmann Orbital Transfer & Delta-V Simulator Modal */}
+          {showHohmannModal && (
+            <HohmannTransferSimulator
+              onClose={() => setShowHohmannModal(false)}
+              language={language}
+            />
+          )}
+
+          {/* Dedicated Active Spacecraft Telemetry Card on Right */}
+          {selectedSpacecraft && (
+            <div className="absolute top-20 sm:top-20 right-2 sm:right-5 z-30 pointer-events-auto w-[calc(100vw-1rem)] max-w-xs sm:w-84 animate-in fade-in duration-200">
+              <div className="bg-space-950/95 backdrop-blur-xl p-3 sm:p-4 rounded-2xl border border-aeroblue/40 shadow-2xl space-y-3 font-mono text-xs text-white max-h-[75vh] overflow-y-auto">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-aerogreen/15 text-aerogreen border border-aerogreen/30 font-bold uppercase tracking-wider">
+                      {selectedSpacecraft.status}
+                    </span>
+                    <h2 className="text-base font-bold text-white mt-1 tracking-tight">
+                      {language === 'km' && selectedSpacecraft.khmerName ? selectedSpacecraft.khmerName : selectedSpacecraft.name}
+                    </h2>
+                    <div className="text-[10px] text-space-400">
+                      {language === 'km' && selectedSpacecraft.khmerAgency ? selectedSpacecraft.khmerAgency : selectedSpacecraft.agency}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedSpacecraft(null)}
+                    className="p-1 rounded-full text-space-400 hover:text-white hover:bg-space-800 transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                  <div className="p-2 bg-space-900/80 rounded-xl border border-space-800">
+                    <span className="text-space-400 block text-[9px]">{language === 'km' ? 'គោលដៅរុករក' : 'TARGET BODY'}</span>
+                    <span className="text-aeroblue font-bold uppercase">{selectedSpacecraft.targetBodyId}</span>
+                  </div>
+                  <div className="p-2 bg-space-900/80 rounded-xl border border-space-800">
+                    <span className="text-space-400 block text-[9px]">{language === 'km' ? 'ឆ្នាំបង្ហោះ' : 'LAUNCH YEAR'}</span>
+                    <span className="text-aerogreen font-bold">{selectedSpacecraft.launchYear}</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 bg-space-900/70 rounded-xl border border-space-800 space-y-1 text-[10px]">
+                  <span className="text-[9px] text-space-400 font-bold uppercase block">
+                    {language === 'km' ? 'បេសកកម្មចម្បង:' : 'MISSION SUMMARY:'}
+                  </span>
+                  <p className="text-space-200 leading-relaxed">
+                    {language === 'km' && selectedSpacecraft.khmerMissionSummary
+                      ? selectedSpacecraft.khmerMissionSummary
+                      : selectedSpacecraft.missionSummary}
+                  </p>
+                </div>
+
+                <div className="p-2 bg-aeroblue/10 rounded-xl border border-aeroblue/25 text-[10px] text-aeroblue-light leading-relaxed">
+                  <span className="font-bold block text-[9px] text-aeroblue uppercase mb-0.5">
+                    {language === 'km' ? 'ទិន្នន័យតេឡេមេទ្រីបន្តផ្ទាល់:' : 'LIVE TELEMETRY HIGHLIGHT:'}
+                  </span>
+                  {language === 'km' && selectedSpacecraft.khmerTelemetryHighlight
+                    ? selectedSpacecraft.khmerTelemetryHighlight
+                    : selectedSpacecraft.telemetryHighlight}
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Floating Compact Planet / Moon Telemetry Card on Right */}
