@@ -157,6 +157,14 @@ npm run start
   6. *Saturn Ring Analytical Body Shadow*: Injected vertex and fragment shader extensions into Saturn's ring material to calculate geometric ray occlusion, casting authentic, razor-sharp shadows of Saturn's globe across the night side of its rings.
   7. *Progressive Web App (PWA) Offline Manifest*: Added `manifest.json` and mobile web application metadata enabling persistent installation and offline caching.
 
+### 9. Active Spacecraft Telemetry, Cosmic Tours, Orbital Transfers, and Solar Physics
+- **Features Implemented**:
+  1. *3D Active Spacecraft & Satellite Telemetry*: Modeled 3D procedural geometries, orbital rings, and beacons for the International Space Station (ISS in LEO), James Webb Space Telescope (JWST at Sun-Earth L2 halo orbit), Parker Solar Probe (perihelion solar corona diving), and Perseverance Rover (Jezero Crater, Mars). Includes live orbital telemetry cards with bilingual Khmer/English mission highlights.
+  2. *Automated Guided Cosmic Solar Tour*: Scripted 10-step sequential planetary tour (Sun through Pluto) with automated camera transitions, radial orbital distances, and narrative subtitle banners in Khmer and English.
+  3. *Hohmann Transfer Orbit & Delta-V Trajectory Simulator*: Interactive Keplerian orbital canvas computing departure burn ($\Delta v_1$), arrival insertion burn ($\Delta v_2$), total budget ($\Delta v_{\text{tot}}$), one-way flight duration ($T_{\text{transfer}}$), and synodic launch window intervals between any two planets, accompanied by an animated transfer vehicle.
+  4. *Dynamic Solar Coronal Mass Ejections (CME) & Solar Wind Wavefronts*: Real-time expanding plasma shockwave wavefront ring radiating outward from the solar core across the solar system with acoustic pulse triggering.
+  5. *Solar Eclipse Totality Corridor Ground Path*: Precision geographical totality polygon and centerline tracking the 2026-08-12 total solar eclipse across Greenland, Iceland, and the Iberian Peninsula, viewable directly within the satellite map interface.
+
 
 
 
