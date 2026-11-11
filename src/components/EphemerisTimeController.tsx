@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Clock, Calendar, RotateCcw, FastForward, X, Globe2 } from 'lucide-react';
+import { Clock, Calendar, RotateCcw, FastForward, X, Globe2, Orbit } from 'lucide-react';
 
 interface EphemerisTimeControllerProps {
   simDateMs: number;
@@ -10,6 +10,8 @@ interface EphemerisTimeControllerProps {
   onJumpToDate: (timestampMs: number) => void;
   onResetToLiveNow: () => void;
   onChangeSimSpeed: (speed: number) => void;
+  onToggleSpacecraft?: () => void;
+  isSpacecraftActive?: boolean;
 }
 
 export default function EphemerisTimeController({
@@ -19,6 +21,8 @@ export default function EphemerisTimeController({
   onJumpToDate,
   onResetToLiveNow,
   onChangeSimSpeed,
+  onToggleSpacecraft,
+  isSpacecraftActive = false,
 }: EphemerisTimeControllerProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [useLocalTime, setUseLocalTime] = useState(true);
@@ -92,6 +96,22 @@ export default function EphemerisTimeController({
             {isRealTimeLive ? 'LIVE' : `${simSpeed}X`}
           </span>
         </button>
+
+        {/* Spacecraft & ISS Quick Launcher */}
+        {onToggleSpacecraft && (
+          <button
+            onClick={onToggleSpacecraft}
+            className={`pointer-events-auto flex items-center gap-1.5 backdrop-blur-xl px-3 py-1 sm:py-1.5 rounded-full border shadow-xl transition-all cursor-pointer ${
+              isSpacecraftActive
+                ? 'bg-aeroblue text-space-950 border-aeroblue font-bold'
+                : 'bg-space-950/90 hover:bg-space-900 border-space-800 text-space-200 hover:text-white'
+            }`}
+            title="Active Spacecraft & Telemetry (ISS, JWST, Parker Solar Probe, Perseverance)"
+          >
+            <Orbit className={`w-3.5 h-3.5 ${isSpacecraftActive ? 'text-space-950' : 'text-aeroblue'}`} />
+            <span className="font-bold tracking-wider text-[10px] sm:text-xs">SPACECRAFT &amp; ISS</span>
+          </button>
+        )}
       </div>
 
       {/* Expandable Ephemeris Date Scrubber Popover */}
