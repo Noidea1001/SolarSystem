@@ -14,13 +14,17 @@ export interface MoonData {
 export interface SpacecraftData {
   id: string;
   name: string;
+  khmerName?: string;
   agency: string;
+  khmerAgency?: string;
   targetBodyId: string;
   orbitOffset3D: { r: number; speed: number; inclinationDeg: number };
   status: string;
   launchYear: number;
   missionSummary: string;
+  khmerMissionSummary?: string;
   telemetryHighlight: string;
+  khmerTelemetryHighlight?: string;
 }
 
 export interface CelestialBodyPhysics {
@@ -579,45 +583,61 @@ export const DEEP_SPACE_MISSIONS: SpacecraftData[] = [
   {
     id: 'iss',
     name: 'International Space Station (ISS)',
+    khmerName: 'ស្ថានីយអវកាសអន្តរជាតិ (ISS)',
     agency: 'NASA / ESA / JAXA / Roscosmos / CSA',
+    khmerAgency: 'NASA / ESA / JAXA / Roscosmos / CSA',
     targetBodyId: 'earth',
-    orbitOffset3D: { r: 1.32, speed: 6.5, inclinationDeg: 51.6 },
+    orbitOffset3D: { r: 1.35, speed: 6.5, inclinationDeg: 51.6 },
     status: 'ACTIVE LEO ORBITAL LABORATORY',
     launchYear: 1998,
     missionSummary: 'Crewed low-Earth orbit research facility traveling at 27,600 km/h (15.5 orbits/day).',
+    khmerMissionSummary: 'មន្ទីរពិសោធន៍គន្លងផែនដីទាបដែលមានមនុស្សរស់នៅ ធ្វើដំណើរក្នុងល្បឿន 27,600 គម/ម៉ោង (15.5 ជុំក្នុងមួយថ្ងៃ)។',
     telemetryHighlight: 'Altitude: ~418 km | Inclination: 51.6° | Real-time GPS tracking integrated',
+    khmerTelemetryHighlight: 'កម្ពស់: ~418 គម | មុំលម្អៀង: 51.6° | ដំណើរការតាមដាន GPS ផ្ទាល់',
   },
   {
     id: 'jwst',
     name: 'James Webb Space Telescope (JWST)',
+    khmerName: 'កែវយឹតអវកាស James Webb (JWST)',
     agency: 'NASA / ESA / CSA',
+    khmerAgency: 'NASA / ESA / CSA',
     targetBodyId: 'earth',
     orbitOffset3D: { r: 3.1, speed: 1.1, inclinationDeg: 14.0 },
     status: 'OPERATIONAL AT SUN-EARTH L2',
     launchYear: 2021,
     missionSummary: '6.5-meter gold-coated beryllium infrared space observatory orbiting the Sun-Earth L2 Lagrange point.',
+    khmerMissionSummary: 'កែវយឹតអ៊ីនហ្វ្រាក្រហមស្រោបមាសទំហំ 6.5 ម៉ែត្រ គោចរជុំវិញចំណុច Lagrange L2 ចម្ងាយ 1.5 លានគមពីផែនដី។',
     telemetryHighlight: 'Distance from Earth: 1.5 Million km | Operating Temp: 40 Kelvin (-233°C)',
+    khmerTelemetryHighlight: 'ចម្ងាយពីផែនដី: 1.5 លានគម | សីតុណ្ហភាពដំណើរការ: -233°C',
   },
   {
     id: 'parker',
     name: 'Parker Solar Probe',
+    khmerName: 'យានអង្កេតព្រះអាទិត្យ Parker',
     agency: 'NASA / APL',
+    khmerAgency: 'NASA / APL',
     targetBodyId: 'sun',
     orbitOffset3D: { r: 6.8, speed: 4.8, inclinationDeg: 3.4 },
     status: 'SOLAR CORONA PERIHELION PASSES',
     launchYear: 2018,
     missionSummary: 'Fastest human-made object diving directly through the Sun’s outer corona to trace solar wind acceleration.',
+    khmerMissionSummary: 'វត្ថុបង្កើតដោយមនុស្សដែលមានល្បឿនលឿនជាងគេ ដោយមុជចូលស្រទាប់បរិយាកាសក្រៅនៃព្រះអាទិត្យ។',
     telemetryHighlight: 'Peak Velocity: 692,000 km/h (192 km/s) | Thermal Shield: 1,370°C Rated',
+    khmerTelemetryHighlight: 'ល្បឿនអតិបរមា: 692,000 គម/ម៉ោង (192 គម/វិនាទី) | ខែលការពារកម្តៅ: 1,370°C',
   },
   {
     id: 'perseverance',
     name: 'Perseverance Rover (Mars 2020)',
+    khmerName: 'រ៉ូវ័រ Perseverance (Mars 2020)',
     agency: 'NASA / JPL',
+    khmerAgency: 'NASA / JPL',
     targetBodyId: 'mars',
     orbitOffset3D: { r: 0.85, speed: 2.2, inclinationDeg: 18.4 },
     status: 'ACTIVE SURFACE OPERATIONS (JEZERO CRATER)',
     launchYear: 2020,
     missionSummary: 'Nuclear-powered astrobiology rover collecting Martian rock core samples in Jezero Crater.',
+    khmerMissionSummary: 'មនុស្សយន្តដើរលើភពអង្គារដំណើរការដោយថាមពលនុយក្លេអ៊ែរ កំពុងប្រមូលគំរូថ្មក្នុងរណ្តៅ Jezero។',
     telemetryHighlight: 'Landing Site: 18.38° N, 77.58° E | MOXIE Oxygen Generation Demonstrated',
+    khmerTelemetryHighlight: 'ទីតាំងចុះចត: 18.38° N, 77.58° E | បានបង្កើតអុកស៊ីសែន MOXIE ដោយជោគជ័យ',
   },
 ];
