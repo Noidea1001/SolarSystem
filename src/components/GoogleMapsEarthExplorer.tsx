@@ -15,6 +15,7 @@ import {
   CloudRain,
   Eye,
   EyeOff,
+  Sun,
 } from 'lucide-react';
 import { computeSolarTerminatorPolygon } from '../utils/ephemeris';
 
@@ -51,6 +52,7 @@ export default function GoogleMapsEarthExplorer({
   const layerGroupRef = useRef<any>(null);
   const terminatorPolygonRef = useRef<any>(null);
   const weatherLayerRef = useRef<any>(null);
+  const eclipseLayerRef = useRef<any>(null);
 
   const [activeLayer, setActiveLayer] = useState<'google-hybrid' | 'esri-satellite' | 'google-roads'>('google-hybrid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,6 +68,7 @@ export default function GoogleMapsEarthExplorer({
   const [isAscending, setIsAscending] = useState(false);
   const [showTerminator, setShowTerminator] = useState(false);
   const [showWeatherRadar, setShowWeatherRadar] = useState(false);
+  const [showEclipsePath, setShowEclipsePath] = useState(false);
 
   // Clean UI / Minimalist Map Mode
   const [isUiHidden, setIsUiHidden] = useState(false);
@@ -380,6 +383,71 @@ export default function GoogleMapsEarthExplorer({
     }
   };
 
+  // Toggle 2026-08-12 Total Solar Eclipse Totality Path
+  const handleToggleEclipsePath = async () => {
+    const nextState = !showEclipsePath;
+    setShowEclipsePath(nextState);
+    if (!mapInstanceRef.current) return;
+
+    if (eclipseLayerRef.current) {
+      mapInstanceRef.current.removeLayer(eclipseLayerRef.current);
+      eclipseLayerRef.current = null;
+    }
+
+    if (nextState) {
+      const L = await import('leaflet');
+      const group = L.layerGroup();
+
+      const centerCoords: [number, number][] = [
+        [83.0, -15.0],
+        [77.0, -22.0],
+        [71.0, -25.5],
+        [66.5, -24.0],
+        [64.2, -22.5],
+        [61.5, -18.5],
+        [54.0, -12.5],
+        [46.0, -7.0],
+        [43.5, -4.5],
+        [42.2, -2.8],
+        [40.8, -0.2],
+        [39.2, 2.2],
+      ];
+
+      const corridorNorth: [number, number][] = [
+        [83.5, -13.0], [77.5, -20.0], [71.5, -23.5], [67.0, -22.0], [64.8, -20.5],
+        [62.1, -16.5], [54.6, -10.5], [46.6, -5.2], [44.1, -2.8], [42.8, -1.0], [41.4, 1.5], [39.8, 3.8]
+      ];
+      const corridorSouth: [number, number][] = [
+        [38.6, 0.6], [40.2, -1.8], [41.6, -4.6], [42.9, -6.2], [45.4, -8.8],
+        [53.4, -14.5], [60.9, -20.5], [63.6, -24.5], [66.0, -26.0], [70.5, -27.5], [76.5, -24.0], [82.5, -17.0]
+      ];
+      const polygonCoords = [...corridorNorth, ...corridorSouth];
+
+      const umbraPolygon = L.polygon(polygonCoords, {
+        color: '#f59e0b',
+        weight: 1.5,
+        fillColor: '#f59e0b',
+        fillOpacity: 0.28,
+      });
+
+      const centerLine = L.polyline(centerCoords, {
+        color: '#fbbf24',
+        weight: 3,
+        dashArray: '8, 6',
+      }).bindTooltip('Total Solar Eclipse 2026-08-12 (Totality Corridor)', { sticky: true });
+
+      group.addLayer(umbraPolygon);
+      group.addLayer(centerLine);
+      group.addTo(mapInstanceRef.current);
+      eclipseLayerRef.current = group;
+
+      mapInstanceRef.current.flyTo([56.0, -12.0], 4, { duration: 1.8 });
+      setGpsStatus('Total Solar Eclipse Path (2026-08-12) Active');
+    } else {
+      setGpsStatus('');
+    }
+  };
+
   // Switch Tile Layer
   const handleSwitchLayer = (type: 'google-hybrid' | 'esri-satellite' | 'google-roads') => {
     setActiveLayer(type);
@@ -686,6 +754,19 @@ export default function GoogleMapsEarthExplorer({
           >
             <CloudRain className="w-3 h-3" />
             <span>RADAR</span>
+          </button>
+
+          <button
+            onClick={handleToggleEclipsePath}
+            className={`px-2 sm:px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+              showEclipsePath
+                ? 'bg-aeroamber text-space-950 shadow-sm'
+                : 'text-space-400 hover:text-white'
+            }`}
+            title="Toggle Total Solar Eclipse Totality Path (2026-08-12)"
+          >
+            <Sun className="w-3 h-3" />
+            <span>ECLIPSE 2026</span>
           </button>
         </div>
 
