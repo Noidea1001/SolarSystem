@@ -38,6 +38,9 @@ import {
   SkipForward,
   SkipBack,
   Zap,
+  TrainTrack,
+  Telescope,
+  ShieldAlert,
 } from 'lucide-react';
 
 import GoogleMapsEarthExplorer from './GoogleMapsEarthExplorer';
@@ -45,15 +48,21 @@ import PlanetComparisonModal from './PlanetComparisonModal';
 import DistanceTelemetryPanel from './DistanceTelemetryPanel';
 import EphemerisTimeController from './EphemerisTimeController';
 import HohmannTransferSimulator from './HohmannTransferSimulator';
+import GravityAssistSimulator from './GravityAssistSimulator';
+import DeltaVSubwayMap from './DeltaVSubwayMap';
+import DeepSpaceNetworkTelemetry from './DeepSpaceNetworkTelemetry';
+import ExoplanetTransitSimulator from './ExoplanetTransitSimulator';
 import { spaceAudio } from '../utils/spaceAudio';
 import { buildConstellationLinesMesh } from '../utils/constellations';
 import {
   CELESTIAL_BODIES_PHYSICS,
   MAJOR_MOONS_DATA,
   DEEP_SPACE_MISSIONS,
+  NEAR_EARTH_ASTEROIDS,
   CelestialBodyPhysics,
   MoonData,
   SpacecraftData,
+  NearEarthAsteroidData,
 } from '../data/celestialBodies';
 import {
   getDaysSinceJ2000,
@@ -471,6 +480,17 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
   const [showComparator, setShowComparator] = useState(false);
   const [showDistanceRuler, setShowDistanceRuler] = useState(false);
   const [showHohmannModal, setShowHohmannModal] = useState(false);
+  const [selectedNeo, setSelectedNeo] = useState<NearEarthAsteroidData | null>(null);
+  const [showNeoRadar, setShowNeoRadar] = useState(true);
+  const showNeoRadarRef = useRef(true);
+  useEffect(() => {
+    showNeoRadarRef.current = showNeoRadar;
+  }, [showNeoRadar]);
+
+  const [showSlingshotModal, setShowSlingshotModal] = useState(false);
+  const [showDeltaVModal, setShowDeltaVModal] = useState(false);
+  const [showDsnModal, setShowDsnModal] = useState(false);
+  const [showExoplanetModal, setShowExoplanetModal] = useState(false);
   const [rulerOriginId, setRulerOriginId] = useState<string>('earth');
   const [rulerTargetId, setRulerTargetId] = useState<string>('mars');
   const [simDateMs, setSimDateMs] = useState<number>(() => Date.now());
@@ -722,6 +742,13 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
       mission: SpacecraftData;
       pivot: THREE.Group;
       mesh: THREE.Group;
+      orbitLine: THREE.Line;
+      angle: number;
+    }[];
+    neoMeshes: {
+      neo: NearEarthAsteroidData;
+      pivot: THREE.Group;
+      body: THREE.Mesh;
       orbitLine: THREE.Line;
       angle: number;
     }[];
@@ -1474,6 +1501,64 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
       });
     });
 
+    // 7. Build Near-Earth Asteroids (NEO) 3D Elliptical Orbits & Rocks (Apophis, Bennu, Ryugu, Didymos)
+    const neoMeshes: any[] = [];
+    const neoRockMat = new THREE.MeshStandardMaterial({
+      color: 0x94a3b8,
+      roughness: 0.9,
+      metalness: 0.15,
+      flatShading: true,
+    });
+
+    NEAR_EARTH_ASTEROIDS.forEach((neo) => {
+      const neoPivot = new THREE.Group();
+      neoPivot.rotation.z = (neo.inclinationDeg * Math.PI) / 180;
+
+      const pts = generateEllipticalOrbitPoints(
+        {
+          orbitRadius3D: neo.orbitRadius3D,
+          eccentricity: neo.eccentricity,
+          inclinationDeg: neo.inclinationDeg,
+        } as any,
+        96
+      );
+      const orbitGeo = new THREE.BufferGeometry().setFromPoints(
+        pts.map((p) => new THREE.Vector3(p.x, p.y, p.z))
+      );
+      const orbitLine = new THREE.Line(
+        orbitGeo,
+        new THREE.LineBasicMaterial({
+          color: new THREE.Color(neo.colorHex),
+          transparent: true,
+          opacity: 0.45,
+          depthWrite: false,
+        })
+      );
+      scene.add(orbitLine);
+
+      const neoGeo = new THREE.DodecahedronGeometry(0.065, 1);
+      const neoMat = neoRockMat.clone();
+      neoMat.color = new THREE.Color(neo.colorHex);
+      const neoBody = new THREE.Mesh(neoGeo, neoMat);
+
+      const hazardBeacon = new THREE.Mesh(
+        new THREE.SphereGeometry(0.02, 6, 6),
+        new THREE.MeshBasicMaterial({ color: new THREE.Color(neo.colorHex) })
+      );
+      neoBody.add(hazardBeacon);
+
+      neoPivot.add(neoBody);
+      scene.add(neoPivot);
+
+      neoMeshes.push({
+        neo,
+        pivot: neoPivot,
+        body: neoBody,
+        orbitLine,
+        angle: Math.random() * Math.PI * 2,
+      });
+    });
+
     sceneContextRef.current = {
       scene,
       camera,
@@ -1488,6 +1573,7 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
       planetMeshes,
       moonMeshes,
       spacecraftMeshes,
+      neoMeshes,
       asteroidBeltMesh,
       kuiperBeltMesh,
       laserLineMesh,
@@ -1607,6 +1693,17 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
           const hits = raycaster.intersectObjects(scItem.mesh.children);
           if (hits.length > 0) {
             handleSelectSpacecraft(scItem.mission);
+            return;
+          }
+        }
+      }
+
+      // Check click on Near-Earth Asteroids (NEO Radar targets)
+      if (sceneContextRef.current.neoMeshes) {
+        for (const neoItem of sceneContextRef.current.neoMeshes) {
+          const hits = raycaster.intersectObject(neoItem.body);
+          if (hits.length > 0) {
+            handleSelectNeo(neoItem.neo);
             return;
           }
         }
@@ -1781,6 +1878,7 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
           planetMeshes,
           moonMeshes,
           spacecraftMeshes,
+          neoMeshes,
           asteroidBeltMesh,
           kuiperBeltMesh,
           laserLineMesh,
@@ -1891,6 +1989,27 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
           cmeMeshRef.current.scale.set(cmeScale, cmeScale, cmeScale);
           const cmeAlpha = Math.max(0.0, 1.0 - cmeRadiusRef.current / 42.0) * 0.45;
           (cmeMeshRef.current.material as THREE.MeshBasicMaterial).opacity = cmeAlpha;
+        }
+
+        // Orbit Near-Earth Asteroids (NEO Radar) around the Sun
+        if (neoMeshes) {
+          const neoVisible = showNeoRadarRef.current;
+          neoMeshes.forEach((item) => {
+            if (!paused) {
+              const orbitalSpeed = ((deltaRealSec * speed) / (item.neo.periodDays * 86400)) * 2 * Math.PI * 2800;
+              item.angle += orbitalSpeed;
+              const r = (item.neo.orbitRadius3D * (1 - item.neo.eccentricity * item.neo.eccentricity)) / (1 + item.neo.eccentricity * Math.cos(item.angle));
+              item.body.position.set(
+                Math.cos(item.angle) * r,
+                0,
+                Math.sin(item.angle) * r
+              );
+              item.body.rotation.y += 0.02;
+              item.body.rotation.x += 0.01;
+            }
+            item.body.visible = neoVisible;
+            item.orbitLine.visible = neoVisible;
+          });
         }
 
         // Update 3D Interplanetary Laser Telemetry Line
@@ -2086,6 +2205,7 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
     setSelectedPlanet(null);
     setSelectedMoon(null);
     setSelectedSpacecraft(null);
+    setSelectedNeo(null);
     setIsEarthFocused(false);
     if (!sceneContextRef.current) return;
     sceneContextRef.current.targetedMesh = null;
@@ -2100,6 +2220,7 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
     setSelectedSpacecraft(craft);
     setSelectedPlanet(null);
     setSelectedMoon(null);
+    setSelectedNeo(null);
     setIsEarthFocused(false);
 
     if (!sceneContextRef.current || !sceneContextRef.current.spacecraftMeshes) return;
@@ -2109,6 +2230,24 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
       sceneContextRef.current.spherical.radius = 1.35;
       sceneContextRef.current.spherical.phi = 1.25;
       sceneContextRef.current.spherical.theta = item.angle + 0.35;
+    }
+  };
+
+  // Near-Earth Asteroid (NEO) Focus & Telemetry
+  const handleSelectNeo = (neo: NearEarthAsteroidData) => {
+    spaceAudio.playTelemetryBeep(1350, 0.09);
+    setSelectedNeo(neo);
+    setSelectedPlanet(null);
+    setSelectedMoon(null);
+    setSelectedSpacecraft(null);
+    setIsEarthFocused(false);
+
+    if (!sceneContextRef.current || !sceneContextRef.current.neoMeshes) return;
+    const item = sceneContextRef.current.neoMeshes.find((n: any) => n.neo.id === neo.id);
+    if (item) {
+      sceneContextRef.current.targetedMesh = item.body;
+      sceneContextRef.current.spherical.radius = 1.35;
+      sceneContextRef.current.spherical.phi = 1.25;
     }
   };
 
@@ -2664,6 +2803,53 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
                 <span>HOHMANN</span>
               </button>
 
+              <button
+                onClick={() => setShowNeoRadar(!showNeoRadar)}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-colors flex items-center gap-1 cursor-pointer ${
+                  showNeoRadar ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'text-space-400 hover:text-white'
+                }`}
+                title="Toggle Near-Earth Asteroid (NEO) Radar & Planetary Defense"
+              >
+                <ShieldAlert className="w-3 h-3 text-rose-400" />
+                <span>NEO RADAR</span>
+              </button>
+
+              <button
+                onClick={() => setShowSlingshotModal(true)}
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold text-space-300 hover:text-white hover:bg-space-800 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Gravitational Slingshot & Gravity Assist Simulator"
+              >
+                <Compass className="w-3 h-3 text-aeroblue" />
+                <span>SLINGSHOT</span>
+              </button>
+
+              <button
+                onClick={() => setShowDeltaVModal(true)}
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold text-space-300 hover:text-white hover:bg-space-800 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Solar System Delta-V Subway Map & Rocket Staging Planner"
+              >
+                <TrainTrack className="w-3 h-3 text-aerogreen" />
+                <span>DELTA-V</span>
+              </button>
+
+              <button
+                onClick={() => setShowDsnModal(true)}
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold text-space-300 hover:text-white hover:bg-space-800 transition-colors flex items-center gap-1 cursor-pointer"
+                title="NASA Deep Space Network (DSN) Antenna Tracking Telemetry"
+              >
+                <Radio className="w-3 h-3 text-aeroblue" />
+                <span>DSN</span>
+              </button>
+
+              <button
+                onClick={() => setShowExoplanetModal(true)}
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold text-space-300 hover:text-white hover:bg-space-800 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Exoplanet Transit Photometry & Habitable Zone Simulator"
+              >
+                <Telescope className="w-3 h-3 text-aeroamber" />
+                <span>EXOPLANET</span>
+              </button>
+
               <div className="h-3 w-px bg-space-800" />
 
               <button
@@ -2762,6 +2948,48 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
             </button>
 
             <button
+              onClick={() => setShowNeoRadar(!showNeoRadar)}
+              className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold transition-colors cursor-pointer ${
+                showNeoRadar ? 'bg-rose-500/20 text-rose-300' : 'text-space-500 hover:text-white'
+              }`}
+              title="NEO Radar"
+            >
+              NEO
+            </button>
+
+            <button
+              onClick={() => setShowSlingshotModal(true)}
+              className="p-1 rounded-full text-space-300 hover:text-white transition-colors cursor-pointer"
+              title="Slingshot"
+            >
+              <Compass className="w-3 h-3 text-aeroblue" />
+            </button>
+
+            <button
+              onClick={() => setShowDeltaVModal(true)}
+              className="p-1 rounded-full text-space-300 hover:text-white transition-colors cursor-pointer"
+              title="Delta-V Subway"
+            >
+              <TrainTrack className="w-3 h-3 text-aerogreen" />
+            </button>
+
+            <button
+              onClick={() => setShowDsnModal(true)}
+              className="p-1 rounded-full text-space-300 hover:text-white transition-colors cursor-pointer"
+              title="NASA DSN"
+            >
+              <Radio className="w-3 h-3 text-aeroblue" />
+            </button>
+
+            <button
+              onClick={() => setShowExoplanetModal(true)}
+              className="p-1 rounded-full text-space-300 hover:text-white transition-colors cursor-pointer"
+              title="Exoplanets"
+            >
+              <Telescope className="w-3 h-3 text-aeroamber" />
+            </button>
+
+            <button
               onClick={() => setShowOrbits(!showOrbits)}
               className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold transition-colors cursor-pointer ${
                 showOrbits ? 'bg-space-800 text-aeroblue' : 'text-space-500 hover:text-white'
@@ -2825,6 +3053,100 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
               onClose={() => setShowHohmannModal(false)}
               language={language}
             />
+          )}
+
+          {/* Gravitational Slingshot & Gravity Assist Simulator Modal */}
+          {showSlingshotModal && (
+            <GravityAssistSimulator
+              onClose={() => setShowSlingshotModal(false)}
+              language={language}
+            />
+          )}
+
+          {/* Solar System Delta-V Subway Map & Rocket Staging Planner Modal */}
+          {showDeltaVModal && (
+            <DeltaVSubwayMap
+              onClose={() => setShowDeltaVModal(false)}
+              language={language}
+            />
+          )}
+
+          {/* NASA Deep Space Network (DSN) Antenna Tracking Telemetry Modal */}
+          {showDsnModal && (
+            <DeepSpaceNetworkTelemetry
+              onClose={() => setShowDsnModal(false)}
+              language={language}
+            />
+          )}
+
+          {/* Exoplanet Transit Photometry & Habitable Zone Simulator Modal */}
+          {showExoplanetModal && (
+            <ExoplanetTransitSimulator
+              onClose={() => setShowExoplanetModal(false)}
+              language={language}
+            />
+          )}
+
+          {/* Dedicated Near-Earth Asteroid (NEO) Radar Telemetry Card on Right */}
+          {selectedNeo && (
+            <div className="absolute top-20 sm:top-20 right-2 sm:right-5 z-30 pointer-events-auto w-[calc(100vw-1rem)] max-w-xs sm:w-84 animate-in fade-in duration-200">
+              <div className="bg-space-950/95 backdrop-blur-xl p-3 sm:p-4 rounded-2xl border border-rose-500/50 shadow-2xl space-y-3 font-mono text-xs text-white max-h-[75vh] overflow-y-auto">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold uppercase tracking-wider">
+                      {language === 'km' ? selectedNeo.khmerHazardLevel : selectedNeo.hazardLevel}
+                    </span>
+                    <h2 className="text-base font-bold text-white mt-1 tracking-tight">
+                      {language === 'km' ? selectedNeo.khmerName : selectedNeo.name}
+                    </h2>
+                    <div className="text-[10px] text-space-400">
+                      Designation: {selectedNeo.designation} &bull; {selectedNeo.diameterMeters} meters
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedNeo(null)}
+                    className="p-1 rounded-full text-space-400 hover:text-white hover:bg-space-800 transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                  <div className="p-2 bg-space-900/80 rounded-xl border border-space-800">
+                    <span className="text-space-400 block text-[9px]">{language === 'km' ? 'ចម្ងាយជិតបំផុត' : 'CLOSE APPROACH'}</span>
+                    <span className="text-rose-400 font-bold">{selectedNeo.closeApproachDistanceKm.toLocaleString()} km</span>
+                  </div>
+                  <div className="p-2 bg-space-900/80 rounded-xl border border-space-800">
+                    <span className="text-space-400 block text-[9px]">{language === 'km' ? 'កាលបរិច្ឆេទហោះកាត់' : 'APPROACH DATE'}</span>
+                    <span className="text-aeroamber font-bold">{selectedNeo.closeApproachDate}</span>
+                  </div>
+                  <div className="p-2 bg-space-900/80 rounded-xl border border-space-800">
+                    <span className="text-space-400 block text-[9px]">{language === 'km' ? 'ចម្ងាយគន្លងកាត់ MOID' : 'EARTH MOID'}</span>
+                    <span className="text-aeroblue font-bold">{selectedNeo.moidAU} AU</span>
+                  </div>
+                  <div className="p-2 bg-space-900/80 rounded-xl border border-space-800">
+                    <span className="text-space-400 block text-[9px]">{language === 'km' ? 'វដ្តគន្លង (ថ្ងៃ)' : 'ORBIT PERIOD'}</span>
+                    <span className="text-white font-bold">{selectedNeo.periodDays} days</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 bg-space-900/70 rounded-xl border border-space-800 space-y-1 text-[10px]">
+                  <span className="text-[9px] text-space-400 font-bold uppercase block">
+                    {language === 'km' ? 'ព័ត៌មានលម្អិតអំពីអាចម៍ផ្កាយ:' : 'ASTEROID PROFILE:'}
+                  </span>
+                  <p className="text-space-200 leading-relaxed">
+                    {language === 'km' ? selectedNeo.khmerDescription : selectedNeo.description}
+                  </p>
+                </div>
+
+                <div className="p-2 bg-rose-500/10 rounded-xl border border-rose-500/30 text-[10px] text-rose-200 leading-relaxed">
+                  <span className="font-bold block text-[9px] text-rose-400 uppercase mb-0.5">
+                    {language === 'km' ? 'រូបវិទ្យាការពារភពផែនដី (PLANETARY DEFENSE):' : 'PLANETARY DEFENSE PHYSICS:'}
+                  </span>
+                  {language === 'km' ? selectedNeo.khmerDeflectionPhysics : selectedNeo.deflectionPhysics}
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Dedicated Active Spacecraft Telemetry Card on Right */}
