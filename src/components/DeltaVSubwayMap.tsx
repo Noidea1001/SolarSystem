@@ -90,7 +90,7 @@ export default function DeltaVSubwayMap({ onClose, language = 'km' }: DeltaVSubw
     while (queue.length > 0) {
       const { current, path, dv, savings } = queue.shift()!;
       if (current === end) {
-        return { path, totalDv: dv, savings };
+        return { path, totalDv: dv, aerobrakeSavings: savings };
       }
       visited.add(current);
 
@@ -310,10 +310,10 @@ export default function DeltaVSubwayMap({ onClose, language = 'km' }: DeltaVSubw
                 {language === 'km' ? 'ការសន្សំដោយបរិយាកាស AEROBRAKING' : 'AEROBRAKING SAVINGS'}
               </span>
               <div className="text-xl font-bold text-aerogreen">
-                {route.savings > 0 ? `~${Math.round(route.savings).toLocaleString()} m/s` : '0 m/s'}
+                {route.aerobrakeSavings > 0 ? `~${Math.round(route.aerobrakeSavings).toLocaleString()} m/s` : '0 m/s'}
               </div>
               <div className="text-[10px] text-space-400">
-                {route.savings > 0 ? (language === 'km' ? 'ប្រើខែលការពារកម្តៅកកិត' : 'Atmospheric heat shield dissipation') : (language === 'km' ? 'គ្មានបរិយាកាសជួយទប់' : 'Propulsive capture only')}
+                {route.aerobrakeSavings > 0 ? (language === 'km' ? 'ប្រើខែលការពារកម្តៅកកិត' : 'Atmospheric heat shield dissipation') : (language === 'km' ? 'គ្មានបរិយាកាសជួយទប់' : 'Propulsive capture only')}
               </div>
             </div>
 
