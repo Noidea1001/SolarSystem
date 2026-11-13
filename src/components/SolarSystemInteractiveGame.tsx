@@ -52,6 +52,11 @@ import GravityAssistSimulator from './GravityAssistSimulator';
 import DeltaVSubwayMap from './DeltaVSubwayMap';
 import DeepSpaceNetworkTelemetry from './DeepSpaceNetworkTelemetry';
 import ExoplanetTransitSimulator from './ExoplanetTransitSimulator';
+import SpectroscopyLab from './SpectroscopyLab';
+import LagrangePointsSimulator from './LagrangePointsSimulator';
+import BlackHoleLensingSimulator from './BlackHoleLensingSimulator';
+import RocketAscentSimulator from './RocketAscentSimulator';
+import MarsColonyHabitatSimulator from './MarsColonyHabitatSimulator';
 import { spaceAudio } from '../utils/spaceAudio';
 import { buildConstellationLinesMesh } from '../utils/constellations';
 import {
@@ -491,6 +496,11 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
   const [showDeltaVModal, setShowDeltaVModal] = useState(false);
   const [showDsnModal, setShowDsnModal] = useState(false);
   const [showExoplanetModal, setShowExoplanetModal] = useState(false);
+  const [showSpectroscopyModal, setShowSpectroscopyModal] = useState(false);
+  const [showLagrangeModal, setShowLagrangeModal] = useState(false);
+  const [showBlackHoleModal, setShowBlackHoleModal] = useState(false);
+  const [showAscentModal, setShowAscentModal] = useState(false);
+  const [showMarsHabitatModal, setShowMarsHabitatModal] = useState(false);
   const [rulerOriginId, setRulerOriginId] = useState<string>('earth');
   const [rulerTargetId, setRulerTargetId] = useState<string>('mars');
   const [simDateMs, setSimDateMs] = useState<number>(() => Date.now());
@@ -2850,6 +2860,51 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
                 <span>EXOPLANET</span>
               </button>
 
+              <button
+                onClick={() => setShowSpectroscopyModal(true)}
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold text-space-300 hover:text-white hover:bg-space-800 transition-colors flex items-center gap-1 cursor-pointer"
+                title="JWST Transmission Spectroscopy & Chemical Fingerprint Lab"
+              >
+                <Sparkles className="w-3 h-3 text-sky-400" />
+                <span>SPEC</span>
+              </button>
+
+              <button
+                onClick={() => setShowLagrangeModal(true)}
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold text-space-300 hover:text-white hover:bg-space-800 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Lagrange Points L1-L5 & Gravitational Potential Contour Visualizer"
+              >
+                <Orbit className="w-3 h-3 text-aeroblue" />
+                <span>LAGRANGE</span>
+              </button>
+
+              <button
+                onClick={() => setShowBlackHoleModal(true)}
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold text-space-300 hover:text-white hover:bg-space-800 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Supermassive Black Hole Gravitational Lensing & Event Horizon Ray Tracer"
+              >
+                <Eye className="w-3 h-3 text-rose-400" />
+                <span>BLACK HOLE</span>
+              </button>
+
+              <button
+                onClick={() => setShowAscentModal(true)}
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold text-space-300 hover:text-white hover:bg-space-800 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Multi-Stage Rocket Ascent & Gravity Turn Autopilot"
+              >
+                <Rocket className="w-3 h-3 text-aerogreen" />
+                <span>ASCENT</span>
+              </button>
+
+              <button
+                onClick={() => setShowMarsHabitatModal(true)}
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold text-space-300 hover:text-white hover:bg-space-800 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Mars Colony Surface Habitat & Life Support Architecture Simulator"
+              >
+                <Flame className="w-3 h-3 text-aeroamber" />
+                <span>MARS HAB</span>
+              </button>
+
               <div className="h-3 w-px bg-space-800" />
 
               <button
@@ -2990,6 +3045,46 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
             </button>
 
             <button
+              onClick={() => setShowSpectroscopyModal(true)}
+              className="p-1 rounded-full text-space-300 hover:text-white transition-colors cursor-pointer"
+              title="Spectroscopy"
+            >
+              <Sparkles className="w-3 h-3 text-sky-400" />
+            </button>
+
+            <button
+              onClick={() => setShowLagrangeModal(true)}
+              className="p-1 rounded-full text-space-300 hover:text-white transition-colors cursor-pointer"
+              title="Lagrange Points"
+            >
+              <Orbit className="w-3 h-3 text-aeroblue" />
+            </button>
+
+            <button
+              onClick={() => setShowBlackHoleModal(true)}
+              className="p-1 rounded-full text-space-300 hover:text-white transition-colors cursor-pointer"
+              title="Black Hole"
+            >
+              <Eye className="w-3 h-3 text-rose-400" />
+            </button>
+
+            <button
+              onClick={() => setShowAscentModal(true)}
+              className="p-1 rounded-full text-space-300 hover:text-white transition-colors cursor-pointer"
+              title="Ascent"
+            >
+              <Rocket className="w-3 h-3 text-aerogreen" />
+            </button>
+
+            <button
+              onClick={() => setShowMarsHabitatModal(true)}
+              className="p-1 rounded-full text-space-300 hover:text-white transition-colors cursor-pointer"
+              title="Mars Habitat"
+            >
+              <Flame className="w-3 h-3 text-aeroamber" />
+            </button>
+
+            <button
               onClick={() => setShowOrbits(!showOrbits)}
               className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold transition-colors cursor-pointer ${
                 showOrbits ? 'bg-space-800 text-aeroblue' : 'text-space-500 hover:text-white'
@@ -3083,6 +3178,46 @@ export default function SolarSystemInteractiveGame({ onOpenKnowledgeTab }: Solar
           {showExoplanetModal && (
             <ExoplanetTransitSimulator
               onClose={() => setShowExoplanetModal(false)}
+              language={language}
+            />
+          )}
+
+          {/* JWST Transmission Spectroscopy & Atmospheric Chemical Fingerprint Lab Modal */}
+          {showSpectroscopyModal && (
+            <SpectroscopyLab
+              onClose={() => setShowSpectroscopyModal(false)}
+              language={language}
+            />
+          )}
+
+          {/* Lagrange Points L1-L5 & Gravitational Potential Well Modal */}
+          {showLagrangeModal && (
+            <LagrangePointsSimulator
+              onClose={() => setShowLagrangeModal(false)}
+              language={language}
+            />
+          )}
+
+          {/* Supermassive Black Hole Gravitational Lensing & Relativistic Ray Tracer Modal */}
+          {showBlackHoleModal && (
+            <BlackHoleLensingSimulator
+              onClose={() => setShowBlackHoleModal(false)}
+              language={language}
+            />
+          )}
+
+          {/* Multi-Stage Rocket Ascent & Gravity Turn Autopilot Simulator Modal */}
+          {showAscentModal && (
+            <RocketAscentSimulator
+              onClose={() => setShowAscentModal(false)}
+              language={language}
+            />
+          )}
+
+          {/* Mars Colony Surface Habitat & Sabatier Life Support Architecture Modal */}
+          {showMarsHabitatModal && (
+            <MarsColonyHabitatSimulator
+              onClose={() => setShowMarsHabitatModal(false)}
               language={language}
             />
           )}
