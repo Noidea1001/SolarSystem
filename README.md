@@ -173,6 +173,15 @@ npm run start
   4. *NASA Deep Space Network (DSN) Telemetry Array*: Global 120-degree ground station array (Goldstone-USA, Madrid-Spain, Canberra-Australia) tracking real-time deep-space communication links with Voyager 1, Voyager 2, JWST, Perseverance, and Parker Solar Probe, with light delay calculations, dish elevation/azimuth, and carrier frequencies.
   5. *Exoplanet Transit Photometry & Habitable Zone Simulator*: Kepler & TESS transit method simulation displaying host star limb darkening, planet transits, and real-time Normalized Flux Light Curve dips ($\delta = (R_p / R_*)^2$) alongside stellar Goldilocks Habitable Zone boundary calculations for TRAPPIST-1e, Proxima Centauri b, Kepler-186f, and Kepler-452b.
 
+### 11. Advanced Astrophysical Simulators & Space Engineering Suite
+- **Cutting-Edge Physics & Engineering Laboratories**:
+  1. *JWST Transmission Spectroscopy & Atmospheric Chemical Fingerprint Lab*: Simulates starlight filtration through exoplanetary atmospheric annuli during transit ($\Delta D(\lambda) = 2 R_p h_{\text{eff}}(\lambda) / R_*^2$). Interactive infrared spectrum canvas (0.5 to 5.0 microns) plotting molecular absorption cross-sections ($H_2O, CO_2, CH_4, DMS$) and synthetic observational error bars for WASP-96b, K2-18b, TRAPPIST-1e, and HD 209458b.
+  2. *Lagrange Points L1-L5 & Gravitational Roche Potential Well Simulator*: Real-time 2D equipotential contour solver for the Circular Restricted Three-Body Problem (CR3BP). Maps effective potential pseudo-surfaces $\Omega(x,y)$, Hill spheres, saddle points (L1, L2, L3), and triangular equilibrium points (L4, L5) with interactive Lissajous/Halo orbit injection and station-keeping Delta-V budgeting.
+  3. *Supermassive Black Hole Gravitational Lensing & Event Horizon Ray Tracer*: General relativity optical rendering computing null geodesic light deflection ($\alpha = 4GM / (c^2 b)$). Accurately visualizes Schwarzschild radius ($r_s = 2GM/c^2$), unstable photon sphere ($1.5 r_s$), Innermost Stable Circular Orbit (ISCO at $3 r_s$), Einstein rings, and relativistic Doppler beaming on the accretion disk for Sagittarius A*, M87*, and Cygnus X-1.
+  4. *Multi-Stage Rocket Ascent & Gravity Turn Autopilot Simulator*: Numerical trajectory integrator computing atmospheric drag ($F_D = 0.5 \rho(h) v^2 C_d A$), dynamic pressure ($q = 0.5 \rho v^2$), Max-Q structural load, and continuous pitch turnover maneuvers ($\theta(t)$). Features orbital insertion into 250 km LEO at $7.8\text{ km/s}$ across Saturn V, Space Launch System (SLS), Falcon 9, and Starship configurations.
+  5. *Mars Colony Surface Habitat & Sabatier Life Support Architecture*: Closed-loop environmental control and life support system (ECLSS) and in-situ resource utilization (ISRU) engineering simulation. Models Sabatier methanation ($CO_2 + 4H_2 \rightarrow CH_4 + 2H_2O$), MOXIE atmospheric $O_2$ electrolysis, 98% closed-loop water distillation, nuclear Kilopower microgrid distribution, and regolith radiation shielding attenuation ($I = I_0 e^{-\mu x}$).
+
+
 
 
 
