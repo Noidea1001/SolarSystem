@@ -27,6 +27,29 @@ export interface SpacecraftData {
   khmerTelemetryHighlight?: string;
 }
 
+export interface NearEarthAsteroidData {
+  id: string;
+  name: string;
+  khmerName: string;
+  designation: string;
+  semiMajorAxisAU: number;
+  eccentricity: number;
+  inclinationDeg: number;
+  periodDays: number;
+  diameterMeters: number;
+  moidAU: number;
+  closeApproachDate: string;
+  closeApproachDistanceKm: number;
+  hazardLevel: 'CRITICAL CLOSE APPROACH' | 'POTENTIALLY HAZARDOUS' | 'BENIGN SURVEY';
+  khmerHazardLevel: string;
+  orbitRadius3D: number;
+  colorHex: string;
+  description: string;
+  khmerDescription: string;
+  deflectionPhysics: string;
+  khmerDeflectionPhysics: string;
+}
+
 export interface CelestialBodyPhysics {
   id: string;
   name: string;
@@ -639,5 +662,96 @@ export const DEEP_SPACE_MISSIONS: SpacecraftData[] = [
     khmerMissionSummary: 'មនុស្សយន្តដើរលើភពអង្គារដំណើរការដោយថាមពលនុយក្លេអ៊ែរ កំពុងប្រមូលគំរូថ្មក្នុងរណ្តៅ Jezero។',
     telemetryHighlight: 'Landing Site: 18.38° N, 77.58° E | MOXIE Oxygen Generation Demonstrated',
     khmerTelemetryHighlight: 'ទីតាំងចុះចត: 18.38° N, 77.58° E | បានបង្កើតអុកស៊ីសែន MOXIE ដោយជោគជ័យ',
+  },
+];
+
+export const NEAR_EARTH_ASTEROIDS: NearEarthAsteroidData[] = [
+  {
+    id: 'apophis',
+    name: '99942 Apophis',
+    khmerName: 'អាចម៍ផ្កាយ 99942 Apophis',
+    designation: '2004 MN4',
+    semiMajorAxisAU: 0.922,
+    eccentricity: 0.191,
+    inclinationDeg: 3.33,
+    periodDays: 323.6,
+    diameterMeters: 370,
+    moidAU: 0.00021,
+    closeApproachDate: '2029-04-13',
+    closeApproachDistanceKm: 31600,
+    hazardLevel: 'CRITICAL CLOSE APPROACH',
+    khmerHazardLevel: 'ហោះកាត់ជិតផែនដីបំផុតក្នុងប្រវត្តិសាស្ត្រ',
+    orbitRadius3D: 10.8,
+    colorHex: '#f43f5e',
+    description: '370-meter Aten-class asteroid passing within 31,600 km of Earth on Friday, April 13, 2029—closer than geostationary communication satellites.',
+    khmerDescription: 'អាចម៍ផ្កាយប្រវែង 370 ម៉ែត្រដែលនឹងហោះកាត់ផែនដីក្នុងចម្ងាយត្រឹមតែ 31,600 គម នៅថ្ងៃទី 13 ខែមេសា ឆ្នាំ 2029 ដែលកៀកជាងផ្កាយរណបទូរគមនាគមន៍ geostationary ទៅទៀត។',
+    deflectionPhysics: 'Planetary Defense: Kinetic impactor deflection (delta-v required: ~1 mm/s applied 10 years prior alters miss distance by >30,000 km).',
+    khmerDeflectionPhysics: 'ការការពារភពផែនដី៖ ការបង្វែរទិសដៅដោយកម្លាំងប៉ះទង្គិច DART (ត្រូវការកម្លាំងប្តូរល្បឿនត្រឹមតែ 1 មម/វិនាទី ១០ឆ្នាំមុន អាចរុញគម្លាតបានជាង 30,000 គម)។',
+  },
+  {
+    id: 'bennu',
+    name: '101955 Bennu',
+    khmerName: 'អាចម៍ផ្កាយ 101955 Bennu',
+    designation: '1999 RQ36',
+    semiMajorAxisAU: 1.126,
+    eccentricity: 0.204,
+    inclinationDeg: 6.03,
+    periodDays: 436.6,
+    diameterMeters: 492,
+    moidAU: 0.0032,
+    closeApproachDate: '2182-09-24',
+    closeApproachDistanceKm: 750000,
+    hazardLevel: 'POTENTIALLY HAZARDOUS',
+    khmerHazardLevel: 'អាចម៍ផ្កាយមានហានិភ័យសក្តានុពល',
+    orbitRadius3D: 12.6,
+    colorHex: '#fb923c',
+    description: 'Carbonaceous rubble-pile asteroid with 121 grams of pristine organic regolith returned to Earth by NASA OSIRIS-REx mission in 2023.',
+    khmerDescription: 'អាចម៍ផ្កាយគំនរថ្មកាបូន ដែលត្រូវបានយាន NASA OSIRIS-REx ចុះប្រមូលកម្ទេចថ្ម 121 ក្រាមត្រឡប់មកផែនដីវិញដោយជោគជ័យក្នុងឆ្នាំ 2023។',
+    deflectionPhysics: 'Yarkovsky Effect: Thermal photons radiated anisotropically from heated dark regolith cause 284 m/year orbital semi-major axis drift.',
+    khmerDeflectionPhysics: 'ឥទ្ធិពល Yarkovsky៖ កម្តៅព្រះអាទិត្យដែលបញ្ចេញមិនស្មើគ្នាពីផ្ទៃថ្មខ្មៅ បណ្តាលឱ្យគន្លងរំកិល 284 ម៉ែត្រក្នុងមួយឆ្នាំ។',
+  },
+  {
+    id: 'ryugu',
+    name: '162173 Ryugu',
+    khmerName: 'អាចម៍ផ្កាយ 162173 Ryugu',
+    designation: '1999 JU3',
+    semiMajorAxisAU: 1.189,
+    eccentricity: 0.190,
+    inclinationDeg: 5.88,
+    periodDays: 474.0,
+    diameterMeters: 900,
+    moidAU: 0.00063,
+    closeApproachDate: '2076-12-05',
+    closeApproachDistanceKm: 1480000,
+    hazardLevel: 'POTENTIALLY HAZARDOUS',
+    khmerHazardLevel: 'អាចម៍ផ្កាយមានហានិភ័យសក្តានុពល',
+    orbitRadius3D: 13.5,
+    colorHex: '#e2e8f0',
+    description: 'Spinning-top shaped C-type rubble asteroid sampled by JAXA Hayabusa2, revealing extraterrestrial amino acids and primordial hydrous minerals.',
+    khmerDescription: 'អាចម៍ផ្កាយរាងកូនកោណដែលត្រូវបានយាន Hayabusa2 របស់ជប៉ុនចុះប្រមូលគំរូ និងបានរកឃើញអាស៊ីតអាមីណូដំបូងបង្អស់ពីលំហអាកាស។',
+    deflectionPhysics: 'Porosity & Shock Damping: Rubble-pile macro-porosity (>50%) attenuates impact shockwaves, requiring nuclear stand-off blast for deflection.',
+    khmerDeflectionPhysics: 'ដង់ស៊ីតេរលុង៖ រចនាសម្ព័ន្ធថ្មរលុង (>50% ប្រហោង) ស្រូបទាញរលកប៉ះទង្គិច ដែលត្រូវការបច្ចេកវិទ្យា thermonuclear standoff ដើម្បីរុញច្រាន។',
+  },
+  {
+    id: 'didymos',
+    name: '65803 Didymos & Dimorphos',
+    khmerName: 'ប្រព័ន្ធអាចម៍ផ្កាយ Didymos និង Dimorphos',
+    designation: '1996 GT',
+    semiMajorAxisAU: 1.644,
+    eccentricity: 0.384,
+    inclinationDeg: 3.41,
+    periodDays: 770.4,
+    diameterMeters: 780,
+    moidAU: 0.040,
+    closeApproachDate: '2022-09-26',
+    closeApproachDistanceKm: 11000000,
+    hazardLevel: 'BENIGN SURVEY',
+    khmerHazardLevel: 'គោលដៅពិសោធន៍ការពារភព DART',
+    orbitRadius3D: 15.2,
+    colorHex: '#38bdf8',
+    description: 'Binary asteroid system where NASA DART spacecraft successfully impacted Dimorphos at 22,500 km/h, altering its orbital period by 33 minutes.',
+    khmerDescription: 'ប្រព័ន្ធអាចម៍ផ្កាយភ្លោះដែលត្រូវបានយាន NASA DART ហោះបុក Dimorphos ក្នុងល្បឿន 22,500 គម/ម៉ោង និងបានផ្លាស់ប្តូរវដ្តគន្លងរហូតដល់ 33 នាទី។',
+    deflectionPhysics: 'Momentum Enhancement Factor (beta): Measured beta = 3.61 due to back-spray ejecta plume, proving kinetic impact planetary defense efficacy.',
+    khmerDeflectionPhysics: 'មេគុណរុញច្រាន Beta: កម្រិត beta = 3.61 កើតឡើងពីកម្ទេចកំទីខ្ទាតបកក្រោយ បញ្ជាក់ថាបច្ចេកវិទ្យាបុកបង្វែរពិតជាមានប្រសិទ្ធភាពខ្ពស់។',
   },
 ];
