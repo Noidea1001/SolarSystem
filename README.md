@@ -165,6 +165,14 @@ npm run start
   4. *Dynamic Solar Coronal Mass Ejections (CME) & Solar Wind Wavefronts*: Real-time expanding plasma shockwave wavefront ring radiating outward from the solar core across the solar system with acoustic pulse triggering.
   5. *Solar Eclipse Totality Corridor Ground Path*: Precision geographical totality polygon and centerline tracking the 2026-08-12 total solar eclipse across Greenland, Iceland, and the Iberian Peninsula, viewable directly within the satellite map interface.
 
+### 10. Near-Earth Asteroid Radar, Slingshots, Delta-V Subway Map, DSN, and Exoplanets
+- **Advanced Astrodynamics & Space Exploration Suite**:
+  1. *Near-Earth Asteroids (NEO) & Apophis 2029 Radar*: 3D modeled orbital paths and procedural low-poly asteroid rocks for Apophis 99942 (Friday, April 13, 2029 close approach at 31,600 km), Bennu 101955, Ryugu 162173, and Didymos/Dimorphos. Displays real-time Minimum Orbit Intersection Distance (MOID), close approach dates, and NASA DART kinetic deflection physics formulas ($p = m \cdot v$, $\beta$ momentum enhancement factor).
+  2. *Gravitational Slingshot & Gravity Assist Simulator*: Interactive Keplerian hyperbolic flyby canvas calculating deflection angle ($\delta = 2 \arcsin(1 / (1 + r_p v_\infty^2 / \mu))$) and heliocentric velocity gain ($\Delta v$) around Jupiter, Saturn, and Venus, with historic mission presets for Voyager 1 & 2, Cassini, and New Horizons.
+  3. *Solar System Delta-V Subway Map & Rocket Staging Planner*: Metro-style transit network connecting Earth Surface, LEO, GTO, GEO, Moon, Mars, and Jupiter. Includes automated pathfinding for cumulative mission Delta-V, aerobraking savings, and an interactive Tsiolkovsky rocket equation sizing calculator ($\Delta v = I_{sp} g_0 \ln(m_0 / m_f)$) for Methalox, Hydrolox, Kerolox, Solid, and Ion thrusters.
+  4. *NASA Deep Space Network (DSN) Telemetry Array*: Global 120-degree ground station array (Goldstone-USA, Madrid-Spain, Canberra-Australia) tracking real-time deep-space communication links with Voyager 1, Voyager 2, JWST, Perseverance, and Parker Solar Probe, with light delay calculations, dish elevation/azimuth, and carrier frequencies.
+  5. *Exoplanet Transit Photometry & Habitable Zone Simulator*: Kepler & TESS transit method simulation displaying host star limb darkening, planet transits, and real-time Normalized Flux Light Curve dips ($\delta = (R_p / R_*)^2$) alongside stellar Goldilocks Habitable Zone boundary calculations for TRAPPIST-1e, Proxima Centauri b, Kepler-186f, and Kepler-452b.
+
 
 
 
